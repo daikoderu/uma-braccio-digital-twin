@@ -6,10 +6,16 @@ A digital twin system of a [TinkerKit Braccio robotic arm](https://www.arduino.c
 
 The structure of this repository is the following:
 
-### robotApi
+### robotApi (BraccioPT)
 
 A custom library for the robot, inspired by the [BraccioRobot library](https://github.com/stefangs/arduino-library-braccio-robot).
 
 ### useModel
 
 The USE model that represent the robot.
+
+### .shell
+
+This folder contains shell scripts used in the development of this project:
+
+*   ``updateLibrary``: used to update an Arduino IDE installation's libraries to the newest version of the BraccioPT API.
