@@ -19,3 +19,4 @@ The USE model that represent the robot.
 This folder contains shell scripts used in the development of this project:
 
 *   ``updateLibrary``: used to update an Arduino IDE installation's libraries to the newest version of the BraccioPT API.
+*   ``openModel``: opens the digital twin model in USE and loads its instantiation in SOIL.
