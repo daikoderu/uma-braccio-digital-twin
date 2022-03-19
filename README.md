@@ -14,7 +14,7 @@ A custom library for the robot, inspired by the [BraccioRobot library](https://g
 
 The USE model that represent the robot.
 
-### .shell
+### shell
 
 This folder contains shell scripts used in the development of this project:
 
