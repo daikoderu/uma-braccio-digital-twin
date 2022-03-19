@@ -1,0 +1,243 @@
+model BraccioRobot
+
+-- ----------------------------------------------------------------------------
+-- Time Management                                                           --
+-- ----------------------------------------------------------------------------
+
+class Clock
+
+    attributes
+
+        -- current time, in milliseconds
+        now : Integer
+            init: 0 
+
+        -- resolution, in milliseconds
+        resolution: Integer
+            init: 1 
+
+    operations
+
+        -- advance time by one tick
+        tick()
+        begin
+            self.now := self.now + self.resolution;
+            for o in self.ao do
+                o.action()
+            end
+        end
+
+        -- advance time by "n" ticks
+        run(n : Integer)
+        begin
+            if n > 0 then
+                for i in Sequence{1..n} do
+                    self.tick()
+                end
+            end
+        end
+
+end
+
+abstract class ActiveObject
+
+    -- action that will happen after each tick
+    -- to be overridden in each subclass
+    operations
+        action() begin end
+
+end
+
+association Time between
+    Clock[1] role clock
+    ActiveObject[*] role ao ordered
+end
+
+constraints
+    context Clock inv OnlyOneClock: 
+        Clock.allInstances->size() = 1
+
+
+-- ----------------------------------------------------------------------------
+-- Robot                                                                     --
+-- ----------------------------------------------------------------------------
+
+class Servo < ActiveObject
+
+    attributes
+
+        -- Servo ID:
+        id : Integer
+            derive: Sequence{1..6}->any(i | self.robot.servo->at(i) = self)
+
+        -- Minimum and maximum angle values
+        minAngle : Integer
+            derive: self.robot.minServoAngles->at(self.id)
+        maxAngle : Integer
+            derive: self.robot.maxServoAngles->at(self.id)
+
+        -- Current and target angle
+        currentAngle : Real
+        targetAngle : Integer
+
+        -- Current and maximum speed
+        currentSpeed : Real
+            init: 0
+        maxSpeed : Real
+            derive: if id <= 2 then self.robot.bigJointMaxSpeed else self.robot.maxSpeed endif
+
+        -- Is this servo moving?
+        moving : Boolean
+            derive: currentSpeed > 0
+
+    operations
+
+        action()
+        begin
+            declare displacement : Real;
+
+            -- How much we can move in this tick
+            displacement := self.currentSpeed * self.clock.resolution / 1000;
+
+            -- Move servo according to currentSpeed, if target position is not reached
+            if self.currentAngle < self.targetAngle then
+                self.currentAngle := self.targetAngle.min(self.currentAngle + displacement)
+            else
+                if self.currentAngle > self.targetAngle then
+                    self.currentAngle := self.targetAngle.max(self.currentAngle - displacement)
+                end
+            end;
+            
+            if self.currentAngle = self.targetAngle then
+                -- Target position reached
+                self.currentSpeed := 0.0
+            end
+
+        end
+
+end
+
+-- Class that specifies a Braccio Robot.
+-- Positions are specified as sequences of 6 integers (one for each servo position)
+-- Index 1 -> Base servo
+-- Index 2 -> Shoulder servo
+-- Index 3 -> Elbow servo
+-- Index 4 -> Wrist vertical servo
+-- Index 5 -> Wrist rotation servo
+-- Index 6 -> Gripper servo
+class BraccioRobot
+
+    attributes
+
+        -- Minimum and maximum values for each servo
+        minServoAngles : Sequence(Integer)
+            init: Sequence{0, 15, 0, 0, 0, 10}
+        maxServoAngles : Sequence(Integer)
+            init: Sequence{180, 165, 180, 180, 180, 73}
+
+        -- Speed constants (degrees per second)
+        maxSpeed : Integer
+            init: 200
+        bigJointMaxSpeed: Integer
+            init: 140
+
+        -- Returns whether any servo of this robot is moving
+        moving : Boolean
+            derive: self.servo->exists(s | s.moving)
+
+    operations
+
+        -- Returns the position of a servo given its ID
+        readServo(id : Integer) : Real
+            = self.servo->at(id).currentAngle
+        pre idInBounds: id >= 1 and id <= 6
+
+        -- Returns the position of each servo
+        readAllServos() : Sequence(Real)
+            = self.servo.currentAngle
+
+        -- Returns the actual duration of a move to a target position in at least minTime seconds
+        getMoveDuration(position : Sequence(Integer), minTime : Real) : Real
+            = let
+
+                servo : OrderedSet(Servo) = self.servo,
+
+                displacements : Sequence(Real) = Sequence{1..6}->collect(i |
+                    (position->at(i) - servo->at(i).currentAngle + 0.0).abs()),
+
+                timesAtMaxSpeed : Sequence(Real) = Sequence{1..6}->collect(i |
+                    displacements->at(i) / servo->at(i).maxSpeed),
+
+                actualTimes : Sequence(Real) = Sequence{1..6}->collect(i |
+                    if minTime = 0 then
+                        timesAtMaxSpeed->at(i)
+                    else
+                        let speed : Real = displacements->at(i) / minTime
+                        in if speed > servo->at(i).maxSpeed then
+                            timesAtMaxSpeed->at(i)
+                        else
+                            minTime
+                        endif
+                    endif
+                    )
+
+            in actualTimes->max()
+        pre validPosition: isValidPosition(position)
+        pre validTime: minTime >= 0
+        pre notMoving: not self.moving
+        post minTimeOk: result >= minTime
+
+        -- Moves the robot to a target position in at least minTime seconds
+        -- and returns the actual time to complete the move
+        moveToPosition(position : Sequence(Integer), minTime : Real)
+        begin
+            declare displacements : Sequence(Real), duration : Real;
+
+            displacements := Sequence{1..6}->collect(i |
+                (position->at(i) - self.servo->at(i).currentAngle + 0.0).abs());
+            duration := self.getMoveDuration(position, minTime);
+
+            -- Adjust speeds to this duration and set target position
+            if duration > 0 then
+                for i in Sequence{1..6} do
+                    self.servo->at(i).currentSpeed := displacements->at(i) / duration;
+                    self.servo->at(i).targetAngle := position->at(i)
+                end
+            end
+        end
+        pre validPosition: isValidPosition(position)
+        pre validTime: minTime >= 0
+        pre notMoving: not self.moving
+        post targetAngleSet: Sequence{1..6}->forAll(i | self.servo->at(i).targetAngle = position->at(i))
+
+        -- Auxiliary operations
+        ----------------------------------------------------------------------------------
+        isValidPosition(position : Sequence(Integer)) : Boolean
+            = position->size() = 6 and
+            Sequence{1..6}->forAll(i |
+                position->at(i) >= self.minServoAngles->at(i) and
+                position->at(i) <= self.maxServoAngles->at(i))
+
+
+end
+
+composition Parts between
+    BraccioRobot[1] role robot
+    Servo[6] role servo ordered
+end
+
+constraints
+
+    -- Ensure all angles of servos are in range
+    context Servo inv AnglesInRange: 
+        self.currentAngle >= minAngle and self.currentAngle <= maxAngle
+        and self.targetAngle >= minAngle and self.targetAngle <= maxAngle
+
+    -- Ensure speeds are not negative
+    context Servo inv NonNegativeSpeed:
+        self.currentSpeed >= 0 and self.maxSpeed > 0
+
+    -- Ensure max speed is respected
+    context Servo inv MaxSpeedOk:
+        self.currentSpeed <= self.maxSpeed
+    

@@ -1,0 +1,44 @@
+reset
+
+!new Clock('ck')
+
+!new Servo('baseServo')
+!baseServo.currentAngle := 90
+!baseServo.targetAngle := 90
+
+!new Servo('shoulderServo')
+!shoulderServo.currentAngle := 90
+!shoulderServo.targetAngle := 90
+
+!new Servo('elbowServo')
+!elbowServo.currentAngle := 90
+!elbowServo.targetAngle := 90
+
+!new Servo('wristVerServo')
+!wristVerServo.currentAngle := 90
+!wristVerServo.targetAngle := 90
+
+!new Servo('wristRotServo')
+!wristRotServo.currentAngle := 90
+!wristRotServo.targetAngle := 90
+
+!new Servo('gripperServo')
+!gripperServo.currentAngle := 73
+!gripperServo.targetAngle := 73
+
+!insert (ck, baseServo) into Time
+!insert (ck, shoulderServo) into Time
+!insert (ck, elbowServo) into Time
+!insert (ck, wristVerServo) into Time
+!insert (ck, wristRotServo) into Time
+!insert (ck, gripperServo) into Time
+
+!new BraccioRobot('robot')
+!insert (robot, baseServo) into Parts
+!insert (robot, shoulderServo) into Parts
+!insert (robot, elbowServo) into Parts
+!insert (robot, wristVerServo) into Parts
+!insert (robot, wristRotServo) into Parts
+!insert (robot, gripperServo) into Parts
+
+check
