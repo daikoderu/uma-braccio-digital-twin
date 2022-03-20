@@ -1,2 +1,7 @@
 **/.vscode
+.idea
+
 /shell/_paths.bat
+
+/useConnector/build
+/useConnector/target

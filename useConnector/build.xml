@@ -1,0 +1,84 @@
+<project name="UseDigitalTwinConnector" default="jar" basedir=".">
+
+	<!-- Version Format: <compatible USE version>-r<n-th release for this USE version>
+	     e.g.: 4.0-r1 -->
+	<property name="use.version" value="5.1.0" />
+	<property name="release.number" value="1" />
+	
+	<property name="version" value="${use.version}-r${release.number}" />
+	
+	<property environment="env"/>
+
+	<condition property="build.suffix" value="-NIGHTLY-build${env.BUILD_NUMBER}" else="-${version}">
+		<isset property="env.BUILD_NUMBER"/>
+	</condition>
+	
+	<property name="compiler" value="1.8" />
+	<!-- DO NOT ENABLE DEBUG HERE!
+	     To enable debug LOCALLY, run ant with argument '-Djavac.debug=true' -->
+	<property name="javac.debug" value="off" />
+	<property name="useplugin.file" value="useplugin.xml" />
+	<property name="plugin.lib" value="lib" />
+	<property name="filename" value="DigitalTwinConnector.jar" />
+
+	<path id="classpath">
+		<fileset dir="${plugin.lib}" includes="*.jar" />
+	</path>
+
+	<target name="setversion">
+		<replaceregexp file="useplugin.xml" match='&lt;\?use version=".*?"' replace='&lt;\?use version="${use.version}"'/>
+		<replaceregexp file="useplugin.xml" match='&lt;plugin(.+?)version=".*?"' replace='&lt;plugin\1version="${version}"'/>
+	</target>
+
+	<target name="clean">
+		<delete dir="build" />
+		<delete dir="dist" />
+	</target>
+
+	<target name="compile" depends="setversion">
+		<mkdir dir="build" />
+		<copy todir="build/resources">
+			<fileset dir="resources" />
+		</copy>
+		<javac destdir="build" source="${compiler}" target="${compiler}" debug="${javac.debug}" classpathref="classpath" includeantruntime="false">
+			<src path="src" />
+		</javac>
+	</target>
+
+	<target name="jar" depends="compile">
+		<jar destfile="dist/${filename}" basedir="build" manifest="META-INF/MANIFEST.MF">
+			<fileset dir="." includes="useplugin.xml" />
+			<zipfileset src="lib/commons-pool2-2.9.0.jar" />
+			<zipfileset src="lib/jedis-3.6.0.jar" />
+			<zipfileset src="lib/slf4j-api-1.7.25.jar" />
+			<zipfileset src="lib/slf4j-simple-1.7.25.jar" />
+		</jar>
+	</target>
+
+    <target name="release-jar" depends="jar" description="Creates plugin release.">
+    	<zip destfile="dist/DigitalTwinPlugin${build.suffix}.zip">
+			<zipfileset dir="." filemode="755">
+    			<include name="README" />
+    		</zipfileset>
+			<zipfileset dir="dist" filemode="755">
+				<include name="${filename}" />
+			</zipfileset>
+    	</zip>
+    </target>
+	
+    <target name="release-sources" description="Creates source code release.">
+    	<zip destfile="dist/DigitalTwinPlugin${build.suffix}-sources.zip">
+    		<zipfileset dir=".">
+    			<include name="build.xml" />
+    			<include name="README" />
+    			<include name="useplugin.xml" />
+    		</zipfileset>
+    		<zipfileset dir="src" prefix="src" />
+    		<zipfileset dir="resources" prefix="resources" />
+    		<zipfileset dir="lib" prefix="lib" />
+    		<zipfileset dir="META-INF" prefix="META-INF" />
+    	</zip>
+    </target>
+	
+    <target name="release" depends="release-jar,release-sources" description="Creates full release." />
+</project>
