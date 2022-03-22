@@ -29,3 +29,5 @@ This folder contains shell scripts used in the development of this project:
 *   ``updateRobotApi``: used to update an Arduino IDE installation's libraries to include the newest version of the BraccioPT API.
 *   ``updateUsePlugin``: used to update an USE installation's plugins to include the newest USE connector plugin ``jar`` file.
 *   ``openModel``: opens the digital twin model in USE and loads its instantiation in SOIL.
+*   ``deployRedis``: shortcut to deploy Redis locally to be used by the physical and digital twin drivers
+*   ``stopRedis``: shortcut to stop a deployed Redis instance
