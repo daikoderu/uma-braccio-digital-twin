@@ -4,10 +4,11 @@ import org.tzi.use.api.UseSystemApi;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import utils.DTLogger;
 
 /**
  * 
- * @author Paula Muñoz - University of Malaga
+ * @author Paula Muñoz - University of Málaga
  * 
  */
 public class SubService implements Runnable {
@@ -30,19 +31,19 @@ public class SubService implements Runnable {
 	}
 
 	/**
-	 * It subscribes to the publisher channel specified in the constructor. 
+	 * Subscribes to the publisher channel specified in the constructor.
 	 */
 	public void run() {
         try {
-        	System.out.println("[INFO] Subscribing to " + this.subscribedChannel);
+        	DTLogger.info("Subscribing to " + this.subscribedChannel);
         	Jedis jedisSubscriber = jedisPool.getResource();
         	Jedis jedisCrud = jedisPool.getResource();
         	jedisSubscriber.subscribe(new DTPubSub(api, jedisCrud), this.subscribedChannel);
 		    jedisPool.returnResource(jedisSubscriber);
 		    jedisPool.returnResource(jedisCrud);
-        	System.out.println("[INFO] Subscription to " + this.subscribedChannel + " ended");
-        } catch (Exception e) {
-            e.printStackTrace();
+			DTLogger.info("Subscription to " + this.subscribedChannel + " ended");
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }    
     }
 

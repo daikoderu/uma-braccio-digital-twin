@@ -12,9 +12,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @author Paula Mu&ntilde;oz - University of M&atilde;laga
+ *
+ * @author Paula Muñoz - University of Málaga
+ *
  */
-
 public class CommandsManager extends OutputManager {
 
     public CommandsManager() {
@@ -30,7 +31,7 @@ public class CommandsManager extends OutputManager {
     }
 
     /**
-     * It saves all the Commands object in the currently displayed object diagram in the data lake.
+     * Saves all the Commands object in the currently displayed object diagram in the data lake.
      *
      * @param api   USE system API instance to interact with the currently displayed object diagram.
      * @param jedis An instance of the Jedis client to access the data lake.

@@ -1,6 +1,12 @@
 package pubsub;
 
+/**
+ *
+ * @author Paula Muñoz - University of Málaga
+ *
+ */
 public abstract class PubService implements Runnable {
+
 	private final String channel;
 	
 	public PubService(String channel) {
@@ -12,4 +18,5 @@ public abstract class PubService implements Runnable {
 	}
 	
 	public abstract void stop();
+
 }

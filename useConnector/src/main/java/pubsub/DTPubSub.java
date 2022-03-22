@@ -7,9 +7,12 @@ import org.tzi.use.api.UseApiException;
 import org.tzi.use.api.UseSystemApi;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPubSub;
+import utils.DTLogger;
 
 /**
- * @author Paula Mu&ntilde;oz - University of M&atilde;laga
+ *
+ * @author Paula Muñoz - University of Málaga
+ *
  */
 public class DTPubSub extends JedisPubSub {
 
@@ -18,7 +21,7 @@ public class DTPubSub extends JedisPubSub {
     public static final String COMMAND_OUT_CHANNEL = "CommandOutChannel";
     private final UseSystemApi api;
     private final Jedis jedis;
-    private final OutputSnapshotsManager dTOutSnapshotsManager;
+    private final OutputSnapshotsManager dtOutSnapshotsManager;
     private final CommandsManager commandsManager;
 
     /**
@@ -30,8 +33,8 @@ public class DTPubSub extends JedisPubSub {
     public DTPubSub(UseSystemApi api, Jedis jedis) {
         this.api = api;
         this.jedis = jedis;
-        this.dTOutSnapshotsManager = new OutputSnapshotsManager();
-        this.commandsManager = new CommandsManager();
+        dtOutSnapshotsManager = new OutputSnapshotsManager();
+        commandsManager = new CommandsManager();
     }
 
     /**
@@ -43,33 +46,37 @@ public class DTPubSub extends JedisPubSub {
     @Override
     public void onMessage(String channel, String message) {
         switch (channel) {
+
             case DT_IN_CHANNEL: // Info entering USE
                 try {
                     InputSnapshotsManager.saveSnapshots(api, jedis);
-                    System.out.println("[INFO-DT] New Input Snapshots saved");
-                } catch (UseApiException e1) {
-                    e1.printStackTrace();
+                    DTLogger.info("New Input Snapshots saved");
+                } catch (UseApiException ex) {
+                    ex.printStackTrace();
                 }
                 break;
+
             case DT_OUT_CHANNEL: // Info leaving USE
                 try {
-                    this.dTOutSnapshotsManager.saveObjects(api, jedis);
-                    System.out.println("[INFO-DT] New Output Snapshots saved");
-                } catch (UseApiException e) {
-                    e.printStackTrace();
+                    this.dtOutSnapshotsManager.saveObjects(api, jedis);
+                    DTLogger.info("New Output Snapshots saved");
+                } catch (UseApiException ex) {
+                    ex.printStackTrace();
                 }
                 break;
             case COMMAND_OUT_CHANNEL:
                 try {
                     this.commandsManager.saveObjects(api, jedis);
-                    System.out.println("[INFO-DT] New Commands saved");
-                } catch (UseApiException e) {
-                    e.printStackTrace();
+                    DTLogger.info("New Commands saved");
+                } catch (UseApiException ex) {
+                    ex.printStackTrace();
                 }
                 break;
+
             default:
-                System.out.println("[WARNING-DT] Received message in unknown channel: " + channel);
+                DTLogger.warn("Received message in unknown channel: " + channel);
                 break;
+
         }
     }
 
@@ -81,6 +88,7 @@ public class DTPubSub extends JedisPubSub {
      */
     @Override
     public void onSubscribe(String channel, int subscribedChannels) {
-        System.out.println("[INFO-DT] Client is Subscribed to channel : " + channel);
+        DTLogger.info("Client is subscribed to channel: " + channel);
     }
+
 }

@@ -14,7 +14,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ *
+ * @author Paula Muñoz - University of Málaga
+ *
+ */
 public abstract class OutputManager {
+
     protected final Map<String, String> attributes;
     protected final String SNAPSHOT_ID = "snapshotId";
     protected final String STRING = "str";
@@ -25,27 +31,24 @@ public abstract class OutputManager {
     private String channel;
 
     public OutputManager() {
-        this.attributes = new HashMap<>();
+        attributes = new HashMap<>();
     }
 
     /**
-     * It retrieves the OutputCarSnapshot objects from the currently displayed object diagram.
+     * Retrieves the OutputCarSnapshot objects from the currently displayed object diagram.
      *
      * @param api USE system API instance to interact with the currently displayed object diagram.
      * @return The list of OutputCarSnapshots available in the currently displayed object diagram.
      */
     public List<MObjectState> getObjects(UseSystemApi api) {
-        List<MObjectState> snapshots = new ArrayList<MObjectState>();
-
+        List<MObjectState> snapshots = new ArrayList<>();
         MClass snapshotClass = api.getSystem().model().getClass(this.retrievedClass);
-
         for (MObject o : api.getSystem().state().allObjects()) {
             if (o.cls().allSupertypes().contains(snapshotClass)) {
                 MObjectState ostate = o.state(api.getSystem().state());
                 snapshots.add(ostate);
             }
         }
-
         return snapshots;
     }
 

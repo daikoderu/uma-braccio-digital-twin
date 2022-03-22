@@ -10,7 +10,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * @author Paula Mu&ntilde;oz - University of M&atilde;laga
+ *
+ * @author Paula Muñoz - University of Málaga
+ *
  */
 public class InputSnapshotsManager {
 

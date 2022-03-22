@@ -5,11 +5,12 @@ import org.tzi.use.api.UseSystemApi;
 import digital.twin.OutputManager;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import utils.DTLogger;
 
 /**
- * 
- * @author Paula Mu&ntilde;oz - University of M&atilde;laga
- * 
+ *
+ * @author Paula Muñoz - University of Málaga
+ *
  */
 public class OutPubService extends PubService {
 	
@@ -36,37 +37,37 @@ public class OutPubService extends PubService {
 	}
 	
 	/**
-	 * It checks periodically if there are new output snapshots in the currently displayed object diagram on USE.
+	 * Checks periodically if there are new output snapshots in the currently displayed object diagram on USE.
 	 */
 	public void run() {
-        while(running){
+        while (running) {
         	// Wait some seconds until it checks again
             try {
                 Thread.sleep(sleepTime);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            } catch (InterruptedException ex) {
+                ex.printStackTrace();
             }
             
-            // Checks for new snapshots
+            // Check for new snapshots
             Jedis jedisTemporalConnection = jedisPool.getResource();
             try {
-            	if(!output.getObjects(api).isEmpty()) {
-            		jedisTemporalConnection.publish(this.getChannel(), "New Information");
-            		System.out.println("[" + this.hashCode() + "-" + this.getChannel()+ "]" + " New Information");
+            	if (!output.getObjects(api).isEmpty()) {
+            		jedisTemporalConnection.publish(getChannel(), "New Information");
+            		DTLogger.info(this, "New Information");
             	}
-            } catch (Exception e) {
-               e.printStackTrace();
+            } catch (Exception ex) {
+               ex.printStackTrace();
             } finally {
                jedisPool.returnResource(jedisTemporalConnection);
             }
-            
         }
     }
 	
 	/**
-	 * It stops the periodic search for new snapshots.
+	 * Stops the periodic search for new snapshots.
 	 */
 	public void stop() {
-		this.running = false;
+		running = false;
 	}
+
 }

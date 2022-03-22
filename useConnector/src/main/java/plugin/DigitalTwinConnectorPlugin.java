@@ -11,31 +11,35 @@ import pubsub.SubService;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import utils.DTLogger;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * @author Paula Mu&ntilde;oz - University of M&atilde;laga
- * <p>
+ * @author Paula Muñoz - University of Málaga
+ *
  * Plugin's main class
  */
 public class DigitalTwinConnectorPlugin implements IPluginActionDelegate {
 
-    private UseSystemApi api;
+    private static final int NUM_EXECUTOR_POOL_THREADS = 3;
+    private static final String REDIS_HOSTNAME = "localhost";
+    private static final int SLEEP_TIME_MS = 5000;
+
     private JedisPool jedisPool;
     private ExecutorService executor;
-    private boolean shutDown;
+    private boolean connectionIsActive;
     private OutPubService outPublisher;
     private OutPubService commandOutPublisher;
-    //private InPubService inPublisher;
+    // private InPubService inPublisher;
 
     /**
      * Default constructor
      */
     public DigitalTwinConnectorPlugin() {
-        this.executor = Executors.newFixedThreadPool(3);
-        this.shutDown = true;
+        ensureThreadPool();
+        connectionIsActive = false;
     }
 
     /**
@@ -45,50 +49,80 @@ public class DigitalTwinConnectorPlugin implements IPluginActionDelegate {
      *                     instance.
      */
     public void performAction(IPluginAction pluginAction) {
-        if (shutDown) {
-            api = UseSystemApi.create(pluginAction.getSession());
-            jedisPool = new JedisPool(new JedisPoolConfig(), "localhost");
+        if (!connectionIsActive) {
+            connect(pluginAction);
+        } else {
+            disconnect();
+        }
+    }
 
-            checkConnectionWithDatabase();
-            this.outPublisher = new OutPubService(DTPubSub.DT_OUT_CHANNEL, api, jedisPool, 5000, new OutputSnapshotsManager());
-            this.commandOutPublisher = new OutPubService(DTPubSub.COMMAND_OUT_CHANNEL, api, jedisPool, 5000, new CommandsManager());
-            //this.inPublisher = new InPubService(DTPubSub.DT_IN_CHANNEL, jedisPool, 5000);
+    private void connect(IPluginAction pluginAction) {
+        UseSystemApi api = UseSystemApi.create(pluginAction.getSession());
+        jedisPool = new JedisPool(new JedisPoolConfig(), REDIS_HOSTNAME);
 
-            if (executor.isShutdown()) {
-                executor = Executors.newFixedThreadPool(3);
-            }
+        if (checkConnectionWithDatabase()) {
+            outPublisher = new OutPubService(DTPubSub.DT_OUT_CHANNEL, api, jedisPool,
+                    SLEEP_TIME_MS, new OutputSnapshotsManager());
+            commandOutPublisher = new OutPubService(DTPubSub.COMMAND_OUT_CHANNEL, api, jedisPool,
+                    SLEEP_TIME_MS, new CommandsManager());
+            // this.inPublisher = new InPubService(DTPubSub.DT_IN_CHANNEL, jedisPool, 5000);
 
+            ensureThreadPool();
             executor.submit(outPublisher);
             executor.submit(commandOutPublisher);
-            //executor.submit(inPublisher);
+            // executor.submit(inPublisher);
 
-            new Thread(new SubService(api, jedisPool, DTPubSub.DT_OUT_CHANNEL), "subscriber " + DTPubSub.DT_OUT_CHANNEL + " thread").start();
-            new Thread(new SubService(api, jedisPool, DTPubSub.COMMAND_OUT_CHANNEL), "subscriber " + DTPubSub.COMMAND_OUT_CHANNEL + " thread").start();
-            //new Thread(new SubService(api, jedisPool, DTPubSub.DT_IN_CHANNEL), "subscriber " + DTPubSub.DT_IN_CHANNEL + " thread").start();
-            shutDown = false;
-        } else {
-            outPublisher.stop();
-            commandOutPublisher.stop();
-            //inPublisher.stop();
-            shutDown = true;
-            System.out.println("[INFO-DT] Connection ended successfully");
+            Thread outChannelThread = new Thread(
+                    new SubService(api, jedisPool, DTPubSub.DT_OUT_CHANNEL),
+                    "subscriber " + DTPubSub.DT_OUT_CHANNEL + " thread");
+            Thread commandOutChannelThread = new Thread(
+                    new SubService(api, jedisPool, DTPubSub.COMMAND_OUT_CHANNEL),
+                    "subscriber " + DTPubSub.COMMAND_OUT_CHANNEL + " thread");
+            // Thread inChannelThread = new Thread(
+            //      new SubService(api, jedisPool, DTPubSub.DT_IN_CHANNEL),
+            //      "subscriber " + DTPubSub.DT_IN_CHANNEL + " thread");
+
+            outChannelThread.start();
+            commandOutChannelThread.start();
+            // inChannelThread.start();
+
+            connectionIsActive = true;
         }
+    }
 
+    private void disconnect() {
+        outPublisher.stop();
+        commandOutPublisher.stop();
+        // inPublisher.stop();
+        connectionIsActive = false;
+        DTLogger.info("Connection ended successfully");
     }
 
     /**
-     * It checks that the connection with the Data Lake works properly.
+     * Checks that the connection with the Data Lake works properly.
+     * Prints out "Connection Successful" if Java successfully connects to the Redis server.
+     * @return true if connection is successful, false otherwise.
      */
-    private void checkConnectionWithDatabase() {
+    private boolean checkConnectionWithDatabase() {
         try {
             Jedis jedis = jedisPool.getResource();
-            // prints out "Connection Successful" if Java successfully connects to Redis
-            // server.
-            System.out.println("[INFO-DT] Connection Successful");
-            System.out.println("[INFO-DT] The server is running " + jedis.ping());
+            DTLogger.info("Connection successful");
+            DTLogger.info("The server is running " + jedis.ping());
             jedisPool.returnResource(jedis);
-        } catch (Exception e) {
-            System.out.println(e);
+            return true;
+        } catch (Exception ex) {
+            DTLogger.error("An error ocurred:");
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Creates a thread pool if it has not been created or is not active
+     */
+    private void ensureThreadPool() {
+        if (executor == null || executor.isShutdown()) {
+            executor = Executors.newFixedThreadPool(NUM_EXECUTOR_POOL_THREADS);
         }
     }
 

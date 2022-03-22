@@ -5,9 +5,9 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
 /**
- * 
- * @author Paula Mu&ntilde;oz - University of M&atilde;laga
- * 
+ *
+ * @author Paula Muñoz - University of Málaga
+ *
  */
 public class InPubService extends PubService {
 	

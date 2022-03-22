@@ -12,7 +12,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @author Paula Mu&ntilde;oz - University of M&atilde;laga
+ *
+ * @author Paula Muñoz - University of Málaga
+ *
  */
 public class OutputSnapshotsManager extends OutputManager {
 
@@ -45,8 +47,8 @@ public class OutputSnapshotsManager extends OutputManager {
     }
 
     /**
-     * It saves all the OutputCarSnapshots object in the currently displayed object diagram in the data lake.
-     * Then, it removes them from the diagram.
+     * Saves all the OutputCarSnapshots object in the currently displayed object diagram in the data lake
+     * and then removes them from the diagram.
      *
      * @param api   USE system API instance to interact with the currently displayed object diagram.
      * @param jedis An instance of the Jedis client to access the data lake.
