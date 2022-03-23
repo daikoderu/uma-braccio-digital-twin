@@ -8,7 +8,7 @@ import org.tzi.use.runtime.impl.Plugin;
  *
  * This class is needed for the proper interaction between USE and the plugin.
  */
-public class DigitalTwinConnector extends Plugin {
+public class DigitalTwinConnectorPlugin extends Plugin {
 
     protected final String PLUGIN_ID = "useDigitalTwinConnector";
 

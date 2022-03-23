@@ -1,7 +1,6 @@
 package pubsub;
 
 import digital.twin.CommandsManager;
-import digital.twin.InputSnapshotsManager;
 import digital.twin.OutputSnapshotsManager;
 import org.tzi.use.api.UseApiException;
 import org.tzi.use.api.UseSystemApi;
@@ -17,7 +16,6 @@ import utils.DTLogger;
 public class DTPubSub extends JedisPubSub {
 
     public static final String DT_OUT_CHANNEL = "DTOutChannel";
-    public static final String DT_IN_CHANNEL = "DTInChannel";
     public static final String COMMAND_OUT_CHANNEL = "CommandOutChannel";
     private final UseSystemApi api;
     private final Jedis jedis;
@@ -47,15 +45,6 @@ public class DTPubSub extends JedisPubSub {
     public void onMessage(String channel, String message) {
         switch (channel) {
 
-            case DT_IN_CHANNEL: // Info entering USE
-                try {
-                    InputSnapshotsManager.saveSnapshots(api, jedis);
-                    DTLogger.info("New Input Snapshots saved");
-                } catch (UseApiException ex) {
-                    ex.printStackTrace();
-                }
-                break;
-
             case DT_OUT_CHANNEL: // Info leaving USE
                 try {
                     this.dtOutSnapshotsManager.saveObjects(api, jedis);
@@ -64,7 +53,8 @@ public class DTPubSub extends JedisPubSub {
                     ex.printStackTrace();
                 }
                 break;
-            case COMMAND_OUT_CHANNEL:
+
+            case COMMAND_OUT_CHANNEL: // Commands sent to the DT system
                 try {
                     this.commandsManager.saveObjects(api, jedis);
                     DTLogger.info("New Commands saved");

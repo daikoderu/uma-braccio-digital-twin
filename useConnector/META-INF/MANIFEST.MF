@@ -2,4 +2,4 @@ Manifest-Version: 1.0
 Plugin-Name: DigitalTwinConnector
 Plugin-Version: 0.1
 Plugin-Publisher: ateneaResearchGroup
-Main-Class: plugin.DigitalTwinConnector
+Main-Class: plugin.DigitalTwinConnectorPlugin

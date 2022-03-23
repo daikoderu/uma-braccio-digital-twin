@@ -21,7 +21,7 @@ import java.util.concurrent.Executors;
  *
  * Plugin's main class
  */
-public class DigitalTwinConnectorPlugin implements IPluginActionDelegate {
+public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
 
     private static final int NUM_EXECUTOR_POOL_THREADS = 3;
     private static final String REDIS_HOSTNAME = "localhost";
@@ -32,12 +32,11 @@ public class DigitalTwinConnectorPlugin implements IPluginActionDelegate {
     private boolean connectionIsActive;
     private OutPubService outPublisher;
     private OutPubService commandOutPublisher;
-    // private InPubService inPublisher;
 
     /**
      * Default constructor
      */
-    public DigitalTwinConnectorPlugin() {
+    public DigitalTwinPluginDelegate() {
         ensureThreadPool();
         connectionIsActive = false;
     }
@@ -45,8 +44,7 @@ public class DigitalTwinConnectorPlugin implements IPluginActionDelegate {
     /**
      * This is the Action Method called from the Action Proxy
      *
-     * @param pluginAction This is the reference to the current USE running
-     *                     instance.
+     * @param pluginAction This is the reference to the current USE running instance.
      */
     public void performAction(IPluginAction pluginAction) {
         if (!connectionIsActive) {
@@ -61,23 +59,23 @@ public class DigitalTwinConnectorPlugin implements IPluginActionDelegate {
         jedisPool = new JedisPool(new JedisPoolConfig(), REDIS_HOSTNAME);
 
         if (checkConnectionWithDatabase()) {
+
+            // Create publishing service
             outPublisher = new OutPubService(DTPubSub.DT_OUT_CHANNEL, api, jedisPool,
                     SLEEP_TIME_MS, new OutputSnapshotsManager());
             commandOutPublisher = new OutPubService(DTPubSub.COMMAND_OUT_CHANNEL, api, jedisPool,
                     SLEEP_TIME_MS, new CommandsManager());
-
             ensureThreadPool();
             executor.submit(outPublisher);
             executor.submit(commandOutPublisher);
-            // executor.submit(inPublisher);
 
+            // Create subscribing threads
             Thread outChannelThread = new Thread(
                     new SubService(api, jedisPool, DTPubSub.DT_OUT_CHANNEL),
                     "subscriber " + DTPubSub.DT_OUT_CHANNEL + " thread");
             Thread commandOutChannelThread = new Thread(
                     new SubService(api, jedisPool, DTPubSub.COMMAND_OUT_CHANNEL),
                     "subscriber " + DTPubSub.COMMAND_OUT_CHANNEL + " thread");
-
             outChannelThread.start();
             commandOutChannelThread.start();
 
@@ -88,7 +86,6 @@ public class DigitalTwinConnectorPlugin implements IPluginActionDelegate {
     private void disconnect() {
         outPublisher.stop();
         commandOutPublisher.stop();
-        // inPublisher.stop();
         connectionIsActive = false;
         DTLogger.info("Connection ended successfully");
     }
@@ -102,7 +99,7 @@ public class DigitalTwinConnectorPlugin implements IPluginActionDelegate {
         try {
             Jedis jedis = jedisPool.getResource();
             DTLogger.info("Connection successful");
-            DTLogger.info("The server is running " + jedis.ping());
+            DTLogger.info("The server is running: " + jedis.ping());
             jedisPool.returnResource(jedis);
             return true;
         } catch (Exception ex) {

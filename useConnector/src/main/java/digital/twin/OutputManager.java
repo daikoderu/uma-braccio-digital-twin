@@ -8,6 +8,7 @@ import org.tzi.use.uml.ocl.value.Value;
 import org.tzi.use.uml.sys.MObject;
 import org.tzi.use.uml.sys.MObjectState;
 import redis.clients.jedis.Jedis;
+import utils.DTLogger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,6 +33,14 @@ public abstract class OutputManager {
 
     public OutputManager() {
         attributes = new HashMap<>();
+    }
+
+    public String getChannel() {
+        return channel;
+    }
+
+    public void setChannel(String channel) {
+        this.channel = channel;
     }
 
     /**
@@ -67,7 +76,7 @@ public abstract class OutputManager {
     }
 
     /**
-     * It retrieves an attribute with the name <i>attributeName</i> from a Map of attributes and values.
+     * Retrieves an attribute with the name <i>attributeName</i> from a Map of attributes and values.
      *
      * @param attributes    Map with the attributes and its values.
      * @param attributeName Name of the attribute whose value is retrieved.
@@ -91,15 +100,17 @@ public abstract class OutputManager {
      * @param carValues          List with the attributes retrieved from the Snapshot
      * @param snapshotAttributes List with the name of the attributes in the snapshot class
      * @param snapshotId         Snapshot identifier
-     * @throws UseApiException Any error related to the USE API
+     * @throws UseApiException In case of any error related to the USE API
      */
-    protected void saveAttributes(UseSystemApi api, Jedis jedis, MObjectState snapshot, Map<String, String> carValues, Map<MAttribute, Value> snapshotAttributes, String snapshotId) throws UseApiException {
+    protected void saveAttributes(
+            UseSystemApi api, Jedis jedis, MObjectState snapshot, Map<String, String> carValues,
+            Map<MAttribute, Value> snapshotAttributes, String snapshotId) throws UseApiException {
         carValues.put(SNAPSHOT_ID, snapshotId);
         String executionId = snapshotId.substring(0, snapshotId.lastIndexOf(":"));
 
         for (String att : this.attributes.keySet()) {
             String attributeValue = getAttribute(snapshotAttributes, att);
-            System.out.println("[INFO-DT-Output] " + att + ": " + attributeValue);
+            DTLogger.info(getChannel(), att + ": " + attributeValue);
             carValues.put(att, attributeValue);
             if (attributes.get(att).equals(NUMBER)) {
                 addSearchRegister(att, Double.parseDouble(attributeValue.replace("'", "")), snapshotId, jedis, executionId);
@@ -114,11 +125,4 @@ public abstract class OutputManager {
         api.deleteObjectEx(snapshot.object());
     }
 
-    public String getChannel() {
-        return channel;
-    }
-
-    public void setChannel(String channel) {
-        this.channel = channel;
-    }
 }
