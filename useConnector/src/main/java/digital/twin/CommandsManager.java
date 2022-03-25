@@ -1,15 +1,13 @@
 package digital.twin;
 
+import digital.twin.attributes.AttributeType;
 import org.tzi.use.api.UseApiException;
 import org.tzi.use.api.UseSystemApi;
-import org.tzi.use.uml.mm.MAttribute;
-import org.tzi.use.uml.ocl.value.Value;
 import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
 import redis.clients.jedis.Jedis;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  *
@@ -22,13 +20,12 @@ public class CommandsManager extends OutputManager {
         super();
         this.setChannel(DTPubSub.COMMAND_OUT_CHANNEL);
         this.retrievedClass = "Command";
-        this.identifier = "commands";
+        this.processedObjectsSetIdentifier = "commands";
 
-        attributes.put("twinId", STRING);
-        attributes.put("timestamp", NUMBER);
-        attributes.put("executionId", NUMBER);
-
-        attributes.put("action", STRING);
+        attributeSpecification.set("twinId", AttributeType.STRING);
+        attributeSpecification.set("timestamp", AttributeType.NUMBER);
+        attributeSpecification.set("executionId", AttributeType.NUMBER);
+        attributeSpecification.set("action", AttributeType.STRING);
     }
 
     /**
@@ -38,12 +35,10 @@ public class CommandsManager extends OutputManager {
      * @param jedis An instance of the Jedis client to access the data lake.
      * @throws UseApiException In case of any error related to the USE API
      */
-    public void saveObjects(UseSystemApi api, Jedis jedis) throws UseApiException {
-        List<MObjectState> unprocessedCommands = getObjects(api);
+    public void saveObjectsToDataLake(UseSystemApi api, Jedis jedis) throws UseApiException {
+        List<MObjectState> unprocessedCommands = getObjectsFromModel(api);
         for (MObjectState command : unprocessedCommands) {
-            Map<MAttribute, Value> commandsAttributes = command.attributeValueMap();
-            String commandId = generateOutputObjectId("DTCommand", commandsAttributes);
-            saveAttributes(jedis, commandsAttributes, commandId);
+            saveOneObject(jedis, command);
             api.deleteObjectEx(command.object());
         }
     }

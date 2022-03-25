@@ -51,7 +51,7 @@ public class OutPubService extends PubService {
             // Check for new snapshots
             Jedis jedisTemporalConnection = jedisPool.getResource();
             try {
-            	if (!output.getObjects(api).isEmpty()) {
+            	if (!output.getObjectsFromModel(api).isEmpty()) {
             		jedisTemporalConnection.publish(getChannel(), "New Information");
             		DTLogger.info(this, "New Information");
             	}

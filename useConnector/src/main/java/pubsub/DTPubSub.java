@@ -47,7 +47,7 @@ public class DTPubSub extends JedisPubSub {
 
             case DT_OUT_CHANNEL: // Info leaving USE
                 try {
-                    this.dtOutSnapshotsManager.saveObjects(api, jedis);
+                    this.dtOutSnapshotsManager.saveObjectsToDataLake(api, jedis);
                     DTLogger.info("New Output Snapshots saved");
                 } catch (UseApiException ex) {
                     ex.printStackTrace();
@@ -56,7 +56,7 @@ public class DTPubSub extends JedisPubSub {
 
             case COMMAND_OUT_CHANNEL: // Commands sent to the DT system
                 try {
-                    this.commandsManager.saveObjects(api, jedis);
+                    this.commandsManager.saveObjectsToDataLake(api, jedis);
                     DTLogger.info("New Commands saved");
                 } catch (UseApiException ex) {
                     ex.printStackTrace();

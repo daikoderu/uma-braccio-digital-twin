@@ -1,15 +1,13 @@
 package digital.twin;
 
+import digital.twin.attributes.AttributeType;
 import org.tzi.use.api.UseApiException;
 import org.tzi.use.api.UseSystemApi;
-import org.tzi.use.uml.mm.MAttribute;
-import org.tzi.use.uml.ocl.value.Value;
 import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
 import redis.clients.jedis.Jedis;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  *
@@ -17,6 +15,8 @@ import java.util.Map;
  *
  */
 public class OutputSnapshotsManager extends OutputManager {
+
+    private static final int NUMBER_OF_SERVOS = 6;
 
     /**
      * Sets the type of the attributes in a HashMap to parse the attributes for the Data Lake.
@@ -26,18 +26,16 @@ public class OutputSnapshotsManager extends OutputManager {
         super();
         setChannel(DTPubSub.DT_OUT_CHANNEL);
         retrievedClass = "OutputBraccioSnapshot";
-        identifier = "processedSnapsDT";
+        processedObjectsSetIdentifier = "processedSnapsDT";
 
-        attributes.put("twinId", STRING);
-        attributes.put("timestamp", NUMBER);
-        attributes.put("executionId", NUMBER);
-        for (int i = 1; i <= 6; i++) {
-            attributes.put("currentAngle" + i, NUMBER);
-            attributes.put("targetAngle" + i, NUMBER);
-            attributes.put("currentSpeed" + i, NUMBER);
-        }
-        attributes.put("isMoving", BOOLEAN);
-        attributes.put("processingQueue", BOOLEAN);
+        attributeSpecification.set("twinId", AttributeType.STRING);
+        attributeSpecification.set("timestamp", AttributeType.NUMBER);
+        attributeSpecification.set("executionId", AttributeType.NUMBER);
+        attributeSpecification.set("currentAngles", AttributeType.NUMBER, NUMBER_OF_SERVOS);
+        attributeSpecification.set("targetAngles", AttributeType.NUMBER, NUMBER_OF_SERVOS);
+        attributeSpecification.set("currentSpeeds", AttributeType.NUMBER, NUMBER_OF_SERVOS);
+        attributeSpecification.set("moving", AttributeType.BOOLEAN);
+        attributeSpecification.set("processingQueue", AttributeType.BOOLEAN);
     }
 
     /**
@@ -48,12 +46,10 @@ public class OutputSnapshotsManager extends OutputManager {
      * @param jedis An instance of the Jedis client to access the data lake.
      * @throws UseApiException In case of any error related to the USE API
      */
-    public void saveObjects(UseSystemApi api, Jedis jedis) throws UseApiException {
-        List<MObjectState> outputSnapshots = this.getObjects(api);
+    public void saveObjectsToDataLake(UseSystemApi api, Jedis jedis) throws UseApiException {
+        List<MObjectState> outputSnapshots = getObjectsFromModel(api);
         for (MObjectState snapshot : outputSnapshots) {
-            Map<MAttribute, Value> snapshotAttributes = snapshot.attributeValueMap();
-            String snapshotId = generateOutputObjectId("DTOutputSnapshot", snapshotAttributes);
-            saveAttributes(jedis, snapshotAttributes, snapshotId);
+            saveOneObject(jedis, snapshot);
             api.deleteObjectEx(snapshot.object());
         }
     }

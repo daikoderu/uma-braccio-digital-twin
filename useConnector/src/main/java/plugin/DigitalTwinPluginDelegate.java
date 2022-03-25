@@ -5,6 +5,10 @@ import digital.twin.OutputSnapshotsManager;
 import org.tzi.use.api.UseSystemApi;
 import org.tzi.use.runtime.gui.IPluginAction;
 import org.tzi.use.runtime.gui.IPluginActionDelegate;
+import org.tzi.use.uml.mm.MAttribute;
+import org.tzi.use.uml.ocl.value.IntegerValue;
+import org.tzi.use.uml.ocl.value.StringValue;
+import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
 import pubsub.OutPubService;
 import pubsub.SubService;
@@ -12,6 +16,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import utils.DTLogger;
+import utils.USEUtils;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,6 +31,11 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     private static final int NUM_EXECUTOR_POOL_THREADS = 3;
     private static final String REDIS_HOSTNAME = "localhost";
     private static final int SLEEP_TIME_MS = 5000;
+
+    private static final String CLOCK_CLASSNAME = "Clock";
+    private static final String CLOCK_NOW_ATTRIBUTE = "now";
+    private static final String ROBOT_CLASSNAME = "BraccioRobot";
+    private static final String EXECUTION_ID_ATTRIBUTE = "executionId";
 
     private JedisPool jedisPool;
     private ExecutorService executor;
@@ -59,6 +69,9 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
         jedisPool = new JedisPool(new JedisPoolConfig(), REDIS_HOSTNAME);
 
         if (checkConnectionWithDatabase()) {
+
+            // Initialize USE model
+            initializeModel(api);
 
             // Create publishing service
             outPublisher = new OutPubService(DTPubSub.DT_OUT_CHANNEL, api, jedisPool,
@@ -116,6 +129,25 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
         if (executor == null || executor.isShutdown()) {
             executor = Executors.newFixedThreadPool(NUM_EXECUTOR_POOL_THREADS);
         }
+    }
+
+    private void initializeModel(UseSystemApi api) {
+        long posixTime = System.currentTimeMillis();
+        IntegerValue intValue = IntegerValue.valueOf((int)posixTime);
+        StringValue stringValue = new StringValue(posixTime + "");
+
+        // Initialize clocks
+        MAttribute clockAttr = USEUtils.getAttribute(api, CLOCK_CLASSNAME, CLOCK_NOW_ATTRIBUTE);
+        for (MObjectState clock : USEUtils.getObjectsOfClass(api, CLOCK_CLASSNAME)) {
+            clock.setAttributeValue(clockAttr, intValue);
+        }
+
+        // Initialize execution IDs of all robots
+        MAttribute execIdAttr = USEUtils.getAttribute(api, ROBOT_CLASSNAME, EXECUTION_ID_ATTRIBUTE);
+        for (MObjectState clock : USEUtils.getObjectsOfClass(api, ROBOT_CLASSNAME)) {
+            clock.setAttributeValue(execIdAttr, stringValue);
+        }
+
     }
 
 }
