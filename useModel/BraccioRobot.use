@@ -26,6 +26,7 @@ class Clock
                 o.action()
             end
         end
+        post: self.now = self.now@pre + self.resolution
 
         -- advance time by "n" ticks
         run(n : Integer)
@@ -36,6 +37,8 @@ class Clock
                 end
             end
         end
+        pre: n >= 0
+        post: self.now = self.now@pre + (n * self.resolution)
 
 end
 
@@ -114,6 +117,9 @@ class Servo < ActiveObject
             end
 
         end
+        post: self.currentAngle@pre <= self.targetAngle implies self.currentAngle@pre <= self.targetAngle
+        post: self.currentAngle@pre >= self.targetAngle implies self.currentAngle@pre >= self.targetAngle
+        post: self.currentAngle = self.targetAngle implies self.currentSpeed = 0.0
 
 end
 
@@ -159,6 +165,10 @@ class BraccioRobot
         -- Returns the position of each servo
         readAllServos() : Sequence(Real)
             = self.servo.currentAngle
+        post: result->size() = 6 and
+            Sequence{1..6}->forAll(i |
+                result->at(i) >= self.minServoAngles->at(i) and
+                result->at(i) <= self.maxServoAngles->at(i))
 
         -- Returns the actual duration of a move to a target position in at least minTime seconds
         getMoveDuration(position : Sequence(Integer), minTime : Real) : Real
@@ -245,6 +255,10 @@ constraints
     context Servo inv MaxSpeedOk:
         self.currentSpeed <= self.maxSpeed
 
+    -- Ensure we have set six minimum and maximum angles
+    context BraccioRobot inv sixAngles:
+        self.minServoAngles->size() = 6 and self.maxServoAngles->size() = 6
+
 
 -- ----------------------------------------------------------------------------
 -- Snapshots                                                                 --
@@ -320,3 +334,8 @@ class SnapshotMonitor < ActiveObject
         end
 
 end
+
+constraints
+
+    context SnapshotMonitor inv positiveTimeBetweenSnapshots:
+        self.timeBetweenSnapshots > 0
