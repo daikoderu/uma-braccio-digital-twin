@@ -8,13 +8,13 @@ class Clock
 
     attributes
 
-        -- current time, in milliseconds
+        -- current time, in milliseconds (POSIX format)
         now : Integer
             init: 0 
 
         -- resolution, in milliseconds
         resolution: Integer
-            init: 1 
+            init: 20
 
     operations
 
@@ -129,6 +129,10 @@ class BraccioRobot
 
     attributes
 
+        twinId : String
+            init: 'MyBraccioArm'
+        executionId : String
+
         -- Minimum and maximum values for each servo
         minServoAngles : Sequence(Integer)
             init: Sequence{0, 15, 0, 0, 0, 10}
@@ -240,4 +244,79 @@ constraints
     -- Ensure max speed is respected
     context Servo inv MaxSpeedOk:
         self.currentSpeed <= self.maxSpeed
-    
+
+
+-- ----------------------------------------------------------------------------
+-- Snapshots                                                                 --
+-- ----------------------------------------------------------------------------
+
+abstract class Snapshot
+
+    attributes
+
+        timestamp : Integer
+        executionId : String
+
+end
+
+abstract class BraccioSnapshot < Snapshot
+
+    attributes
+
+        twinId : String
+        currentAngles : Sequence(Real)
+        targetAngles : Sequence(Real)
+        currentSpeeds : Sequence(Real)
+        moving : Boolean
+            derive: Sequence{1..6}->exists(i | self.currentSpeeds->at(i) > 0)
+        processingQueue : Boolean
+            init: false
+
+end
+
+class OutputBraccioSnapshot < BraccioSnapshot
+
+    operations
+
+        init(arm : BraccioRobot, now : Integer)
+        begin
+            self.twinId := arm.twinId;
+            self.executionId := arm.executionId;
+            self.timestamp := now;
+
+            self.currentAngles := arm.readAllServos();
+            self.targetAngles := arm.servo.targetAngle;
+            self.currentSpeeds := arm.servo.currentSpeed
+        end
+
+end
+
+association Monitoring between
+    SnapshotMonitor[*] role snapshotMonitor
+    BraccioRobot[1] role robot
+end
+
+class SnapshotMonitor < ActiveObject
+
+    attributes
+
+        -- milliseconds to wait between snapshots
+        timeBetweenSnapshots : Integer
+            init: 100
+
+        timeForNextSnapshot : Integer
+            init: 100
+
+    operations
+        action()
+        begin
+            self.timeForNextSnapshot := self.timeForNextSnapshot - self.clock.resolution;
+            if self.timeForNextSnapshot <= 0 then
+                declare snapshot : OutputBraccioSnapshot;
+                snapshot := new OutputBraccioSnapshot;
+                snapshot.init(self.robot, self.clock.now);
+                self.timeForNextSnapshot := self.timeForNextSnapshot + self.timeBetweenSnapshots
+            end
+        end
+
+end
