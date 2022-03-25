@@ -36,7 +36,7 @@ public class DTPubSub extends JedisPubSub {
     }
 
     /**
-     * This method is called every time a message is received through an specific channel
+     * This method is called every time a message is received through a specific channel
      *
      * @param channel Channel from which the message was received
      * @param message Message received

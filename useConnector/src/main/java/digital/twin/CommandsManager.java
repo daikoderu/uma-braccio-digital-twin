@@ -8,7 +8,6 @@ import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
 import redis.clients.jedis.Jedis;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,18 +39,12 @@ public class CommandsManager extends OutputManager {
      * @throws UseApiException In case of any error related to the USE API
      */
     public void saveObjects(UseSystemApi api, Jedis jedis) throws UseApiException {
-        List<MObjectState> unprocessedCommands = this.getObjects(api);
+        List<MObjectState> unprocessedCommands = getObjects(api);
         for (MObjectState command : unprocessedCommands) {
-            Map<String, String> commandsValues = new HashMap<>();
             Map<MAttribute, Value> commandsAttributes = command.attributeValueMap();
-
-            String commandId = "0:0:command:" + getAttribute(commandsAttributes, "twinId")
-                    .replace("'", "") + ":"
-                    + getAttribute(commandsAttributes, "executionId")
-                    .replace("'", "") + ":"
-                    + getAttribute(commandsAttributes, "timestamp");
-
-            saveAttributes(api, jedis, command, commandsValues, commandsAttributes, commandId);
+            String commandId = generateOutputObjectId("DTCommand", commandsAttributes);
+            saveAttributes(jedis, commandsAttributes, commandId);
+            api.deleteObjectEx(command.object());
         }
     }
 

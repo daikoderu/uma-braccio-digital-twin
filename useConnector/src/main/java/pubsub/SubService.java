@@ -20,14 +20,14 @@ public class SubService implements Runnable {
 	/**
 	 * Default constructor
 	 * 
-	 * @param api			USE system API instance to interact with the currently displayed object diagram.
-	 * @param jedisPool		Jedis client pool, connected to the Data Lake
-	 * @param channel		Channel you want to subscribe to
+	 * @param api				USE system API instance to interact with the currently displayed object diagram.
+	 * @param jedisPool			Jedis client pool, connected to the Data Lake
+	 * @param subscribedChannel	Channel you want to subscribe to
 	 */
-	public SubService(UseSystemApi api, JedisPool jedisPool, String channel) {
+	public SubService(UseSystemApi api, JedisPool jedisPool, String subscribedChannel) {
 		this.api = api;
 		this.jedisPool = jedisPool;
-		this.subscribedChannel = channel;
+		this.subscribedChannel = subscribedChannel;
 	}
 
 	/**
@@ -35,13 +35,13 @@ public class SubService implements Runnable {
 	 */
 	public void run() {
         try {
-        	DTLogger.info("Subscribing to " + this.subscribedChannel);
+        	DTLogger.info("Subscribing to " + subscribedChannel);
         	Jedis jedisSubscriber = jedisPool.getResource();
         	Jedis jedisCrud = jedisPool.getResource();
-        	jedisSubscriber.subscribe(new DTPubSub(api, jedisCrud), this.subscribedChannel);
+        	jedisSubscriber.subscribe(new DTPubSub(api, jedisCrud), subscribedChannel);
 		    jedisPool.returnResource(jedisSubscriber);
 		    jedisPool.returnResource(jedisCrud);
-			DTLogger.info("Subscription to " + this.subscribedChannel + " ended");
+			DTLogger.info("Subscription to " + subscribedChannel + " ended");
         } catch (Exception ex) {
             ex.printStackTrace();
         }    

@@ -8,7 +8,6 @@ import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
 import redis.clients.jedis.Jedis;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,29 +21,23 @@ public class OutputSnapshotsManager extends OutputManager {
     /**
      * Sets the type of the attributes in a HashMap to parse the attributes for the Data Lake.
      * For example, Booleans will turn into 0 or 1; Numbers will be transformed into Floats.
-     * TODO: Support a configuration file that determines the format of the information to be received, specifying which attributes we want to receive and store.
      */
     public OutputSnapshotsManager() {
         super();
-        this.setChannel(DTPubSub.DT_OUT_CHANNEL);
-        this.retrievedClass = "OutputBraccioSnapshot";
-        this.identifier = "processedSnapsDT";
+        setChannel(DTPubSub.DT_OUT_CHANNEL);
+        retrievedClass = "OutputBraccioSnapshot";
+        identifier = "processedSnapsDT";
 
         attributes.put("twinId", STRING);
         attributes.put("timestamp", NUMBER);
         attributes.put("executionId", NUMBER);
-
-        attributes.put("xPos", NUMBER);
-        attributes.put("yPos", NUMBER);
-        attributes.put("angle", NUMBER);
-        attributes.put("speed", NUMBER);
-
-        attributes.put("light", NUMBER);
-        attributes.put("distance", NUMBER);
-        attributes.put("bump", BOOLEAN);
+        for (int i = 1; i <= 6; i++) {
+            attributes.put("currentAngle" + i, NUMBER);
+            attributes.put("targetAngle" + i, NUMBER);
+            attributes.put("currentSpeed" + i, NUMBER);
+        }
         attributes.put("isMoving", BOOLEAN);
-
-        attributes.put("action", STRING);
+        attributes.put("processingQueue", BOOLEAN);
     }
 
     /**
@@ -58,13 +51,10 @@ public class OutputSnapshotsManager extends OutputManager {
     public void saveObjects(UseSystemApi api, Jedis jedis) throws UseApiException {
         List<MObjectState> outputSnapshots = this.getObjects(api);
         for (MObjectState snapshot : outputSnapshots) {
-            Map<String, String> carValues = new HashMap<>();
             Map<MAttribute, Value> snapshotAttributes = snapshot.attributeValueMap();
-
-            String snapshotId = "DT:" + getAttribute(snapshotAttributes, "twinId")
-                    .replace("'", "") + ":" + getAttribute(snapshotAttributes, "executionId")
-                    .replace("'", "") + ":" + getAttribute(snapshotAttributes, "timestamp");
-            saveAttributes(api, jedis, snapshot, carValues, snapshotAttributes, snapshotId);
+            String snapshotId = generateOutputObjectId("DTOutputSnapshot", snapshotAttributes);
+            saveAttributes(jedis, snapshotAttributes, snapshotId);
+            api.deleteObjectEx(snapshot.object());
         }
     }
 

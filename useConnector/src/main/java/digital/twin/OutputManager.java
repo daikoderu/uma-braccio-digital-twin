@@ -9,6 +9,7 @@ import org.tzi.use.uml.sys.MObject;
 import org.tzi.use.uml.sys.MObjectState;
 import redis.clients.jedis.Jedis;
 import utils.DTLogger;
+import utils.StringUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,11 +23,12 @@ import java.util.Map;
  */
 public abstract class OutputManager {
 
+    protected static final String SNAPSHOT_ID = "snapshotId";
+    protected static final String STRING = "str";
+    protected static final String NUMBER = "double";
+    protected static final String BOOLEAN = "boolean";
+
     protected final Map<String, String> attributes;
-    protected final String SNAPSHOT_ID = "snapshotId";
-    protected final String STRING = "str";
-    protected final String NUMBER = "double";
-    protected final String BOOLEAN = "boolean";
     protected String retrievedClass;
     protected String identifier;
     private String channel;
@@ -44,14 +46,14 @@ public abstract class OutputManager {
     }
 
     /**
-     * Retrieves the OutputCarSnapshot objects from the currently displayed object diagram.
+     * Retrieves the objects of class retrievedClass from the currently displayed object diagram.
      *
      * @param api USE system API instance to interact with the currently displayed object diagram.
-     * @return The list of OutputCarSnapshots available in the currently displayed object diagram.
+     * @return The list of objects available in the currently displayed object diagram.
      */
     public List<MObjectState> getObjects(UseSystemApi api) {
         List<MObjectState> snapshots = new ArrayList<>();
-        MClass snapshotClass = api.getSystem().model().getClass(this.retrievedClass);
+        MClass snapshotClass = api.getSystem().model().getClass(retrievedClass);
         for (MObject o : api.getSystem().state().allObjects()) {
             if (o.cls().allSupertypes().contains(snapshotClass)) {
                 MObjectState ostate = o.state(api.getSystem().state());
@@ -94,35 +96,50 @@ public abstract class OutputManager {
     /**
      * Auxiliary method to store the attributes in the database, extracted from the diagram.
      *
-     * @param api                USE system API instance to interact with the currently displayed object diagram.
      * @param jedis              An instance of the Jedis client to access the data lake.
-     * @param snapshot           An instance of the Snapshot Object retrieved from USE
-     * @param carValues          List with the attributes retrieved from the Snapshot
      * @param snapshotAttributes List with the name of the attributes in the snapshot class
      * @param snapshotId         Snapshot identifier
-     * @throws UseApiException In case of any error related to the USE API
      */
-    protected void saveAttributes(
-            UseSystemApi api, Jedis jedis, MObjectState snapshot, Map<String, String> carValues,
-            Map<MAttribute, Value> snapshotAttributes, String snapshotId) throws UseApiException {
-        carValues.put(SNAPSHOT_ID, snapshotId);
+    protected void saveAttributes(Jedis jedis, Map<MAttribute, Value> snapshotAttributes, String snapshotId) {
+        Map<String, String> armValues = new HashMap<>();
+        armValues.put(SNAPSHOT_ID, snapshotId);
         String executionId = snapshotId.substring(0, snapshotId.lastIndexOf(":"));
-
-        for (String att : this.attributes.keySet()) {
+        for (String att : attributes.keySet()) {
+            String attributeType = attributes.get(att);
             String attributeValue = getAttribute(snapshotAttributes, att);
             DTLogger.info(getChannel(), att + ": " + attributeValue);
-            carValues.put(att, attributeValue);
-            if (attributes.get(att).equals(NUMBER)) {
-                addSearchRegister(att, Double.parseDouble(attributeValue.replace("'", "")), snapshotId, jedis, executionId);
-            } else if (attributes.get(att).equals(BOOLEAN)) {
-                addSearchRegister(att, Boolean.parseBoolean(attributeValue) ? 1 : 0, snapshotId, jedis, executionId);
+            armValues.put(att, attributeValue);
+            switch (attributeType) {
+                case NUMBER:
+                case BOOLEAN:
+                    addSearchRegister(att, getSearchRegisterScore(attributeValue, attributeType),
+                            snapshotId, jedis, executionId);
             }
         }
-
-        jedis.hset(snapshotId, carValues);
+        jedis.hset(snapshotId, armValues);
         jedis.zadd(identifier, 0, snapshotId);
+    }
 
-        api.deleteObjectEx(snapshot.object());
+    protected String generateOutputObjectId(String prefix, Map<MAttribute, Value> attributes) {
+        return String.format(
+                "%s:%s:%s:%s",
+                prefix,
+                StringUtils.removeQuotes(getAttribute(attributes, "twinId")),
+                StringUtils.removeQuotes(getAttribute(attributes, "executionId")),
+                StringUtils.removeQuotes(getAttribute(attributes, "timestamp")));
+    }
+
+    private static double getSearchRegisterScore(String value, String type) {
+        switch (type) {
+            case NUMBER:
+                return Double.parseDouble(value.replace("'", ""));
+
+            case BOOLEAN:
+                return Boolean.parseBoolean(value) ? 1 : 0;
+
+            default:
+                return 0;
+        }
     }
 
 }
