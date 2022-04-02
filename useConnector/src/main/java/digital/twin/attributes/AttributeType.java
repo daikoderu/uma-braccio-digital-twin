@@ -6,19 +6,11 @@ public enum AttributeType {
 
     BOOLEAN, NUMBER, STRING;
 
-    public double getSearchRegisterScore(String value) {
-        switch (this) {
-            case NUMBER:
-                return Double.parseDouble(value.replace("'", ""));
-
-            case BOOLEAN:
-                return Boolean.parseBoolean(value) ? 1 : 0;
-
-            default:
-                return 0;
-        }
-    }
-
+    /**
+     * Converts a USE value string to a string to be stored on a Redis data lake.
+     * @param value The USE value to convert, as a string returned by the USE API.
+     * @return The value to be stored in Redis.
+     */
     public String toRedisString(String value) {
         switch (this) {
 

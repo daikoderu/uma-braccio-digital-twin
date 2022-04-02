@@ -17,21 +17,14 @@ import java.util.List;
 public class CommandsManager extends OutputManager {
 
     public CommandsManager() {
-        super();
-        this.setChannel(DTPubSub.COMMAND_OUT_CHANNEL);
-        this.retrievedClass = "Command";
-        this.processedObjectsSetIdentifier = "commands";
-
-        attributeSpecification.set("twinId", AttributeType.STRING);
-        attributeSpecification.set("timestamp", AttributeType.NUMBER);
-        attributeSpecification.set("executionId", AttributeType.NUMBER);
+        super(DTPubSub.COMMAND_OUT_CHANNEL, "Command", "DTCommand");
         attributeSpecification.set("action", AttributeType.STRING);
+        attributeSpecification.set("arguments", AttributeType.STRING);
     }
 
     /**
-     * Saves all the Commands object in the currently displayed object diagram in the data lake.
-     *
-     * @param api   USE system API instance to interact with the currently displayed object diagram.
+     * Saves all the Command objects in the currently displayed object diagram in the data lake.
+     * @param api USE system API instance to interact with the currently displayed object diagram.
      * @param jedis An instance of the Jedis client to access the data lake.
      * @throws UseApiException In case of any error related to the USE API
      */

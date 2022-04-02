@@ -24,20 +24,22 @@ public abstract class OutputManager {
     protected static final String SNAPSHOT_ID = "snapshotId";
 
     protected final AttributeSpecification attributeSpecification;
-    protected String retrievedClass;
-    protected String processedObjectsSetIdentifier;
-    private String channel;
+    private final String channel;
+    private final String retrievedClass;
+    private final String objectIdPrefix;
 
-    public OutputManager() {
+    public OutputManager(String channel, String retrievedClass, String objectIdPrefix) {
         attributeSpecification = new AttributeSpecification();
+        attributeSpecification.set("twinId", AttributeType.STRING);
+        attributeSpecification.set("executionId", AttributeType.STRING);
+        attributeSpecification.set("timestamp", AttributeType.NUMBER);
+        this.channel = channel;
+        this.retrievedClass = retrievedClass;
+        this.objectIdPrefix = objectIdPrefix;
     }
 
     public String getChannel() {
         return channel;
-    }
-
-    public void setChannel(String channel) {
-        this.channel = channel;
     }
 
     /**
@@ -50,32 +52,41 @@ public abstract class OutputManager {
         return USEUtils.getObjectsOfClass(api, retrievedClass);
     }
 
+    /**
+     * Saves all objects to the data lake.
+     * @param api The USE system API instance to interact with the currently displayed object diagram.
+     * @param jedis An instance of the Jedis client to access the data lake.
+     * @throws UseApiException In case of any error related to the USE API
+     */
     public abstract void saveObjectsToDataLake(UseSystemApi api, Jedis jedis) throws UseApiException;
 
     /**
-     * This method is equivalent to the redis command <i>ZADD DT_sensorKey_LIST score registryKey</i>
-     *
-     * @param sensorKey   Sensor identifier.
-     * @param score       Value of the sensor readings.
-     * @param registryKey Snapshot Id
-     * @param jedis       An instance of the Jedis client to access the data lake.
+     * Adds a search register to the database to maintain a list of all states of an object for a digital twin
+     * and an execution id.
+     * @param jedis An instance of the Jedis client to access the data lake.
+     * @param twinIdExecutionId The twin ID and execution ID of the object: [objectIdPrefix]:[twinId]:[executionId]
+     * @param attributeName The name of the attribute to save.
+     * @param type The type of the attribute to save.
+     * @param value The value to save, as a USE value.
+     * @param objectId The key of the object to be able to be retrieved.
      */
-    protected void addSearchRegister(String sensorKey, double score, String registryKey, Jedis jedis, String executionId) {
-        jedis.zadd(executionId + ":" + sensorKey.toUpperCase() + "_LIST", score, registryKey);
-    }
+    protected void addSearchRegister(
+            Jedis jedis, String twinIdExecutionId, String attributeName,
+            AttributeType type, String value, String objectId) {
+        String key = twinIdExecutionId + ":" + attributeName.toUpperCase() + "_LIST";
+        double score;
+        switch (type) {
 
-    /**
-     * Retrieves an attribute with the name <i>attributeName</i> from an USE object state.
-     *
-     * @param objstate      State of the USE object.
-     * @param attributeName Name of the attribute whose value is retrieved.
-     * @return The corresponding attribute value, or null if the attribute is not found.
-     */
-    protected String getAttributeAsString(MObjectState objstate, String attributeName) {
-        try {
-            return objstate.attributeValue(attributeName).toString();
-        } catch (IllegalArgumentException ignored) {
-            return null;
+            case NUMBER:
+                score = Double.parseDouble(value.replace("'", ""));
+                jedis.zadd(key, score, objectId);
+                break;
+
+            case BOOLEAN:
+                score = Boolean.parseBoolean(value) ? 1 : 0;
+                jedis.zadd(key, score, objectId);
+                break;
+
         }
     }
 
@@ -88,28 +99,29 @@ public abstract class OutputManager {
     protected void saveOneObject(Jedis jedis, MObjectState snapshot) {
         Map<String, String> armValues = new HashMap<>();
 
-        // Generate the snapshot identifier
-        String snapshotId = generateOutputObjectId(snapshot);
-        armValues.put(SNAPSHOT_ID, snapshotId);
+        // Generate the object identifier
+        String objectId = generateOutputObjectId(snapshot);
+        armValues.put(SNAPSHOT_ID, objectId);
 
-        // Get execution ID
-        String executionId = snapshotId.substring(0, snapshotId.lastIndexOf(":"));
+        // Get object ID without timestamp, [objectIdPrefix]:[twinId]:[executionId]
+        String objectIdNoStamp = objectId.substring(0, objectId.lastIndexOf(":"));
 
         DTLogger.info(getChannel(), "---");
         for (String attr : attributeSpecification.attributeNames()) {
 
-            AttributeType type = attributeSpecification.typeOf(attr);
+            AttributeType attrType = attributeSpecification.typeOf(attr);
             int multiplicity = attributeSpecification.multiplicityOf(attr);
-
-            String attributeValue = getAttributeAsString(snapshot, attr);
-            if (attributeValue != null) {
-                DTLogger.info(getChannel(), attr + ": " + attributeValue);
+            String attrValue = USEUtils.getAttributeAsString(snapshot, attr);
+            if (attrValue != null) {
+                DTLogger.info(getChannel(), attr + ": " + attrValue);
                 if (multiplicity > 1) {
                     // A sequence of values
-                    String[] values = extractValuesFromCollection(attributeValue);
+                    String[] values = extractValuesFromCollection(attrValue, attrType);
                     if (values.length == multiplicity) {
                         for (int i = 1; i <= multiplicity; i++) {
-                            armValues.put(attr + "_" + i, values[i - 1]);
+                            String attrI = attr + "_" + i;
+                            armValues.put(attrI, values[i - 1]);
+                            addSearchRegister(jedis, objectIdNoStamp, attrI, attrType, values[i - 1], objectId);
                         }
                     } else {
                         DTLogger.warn(getChannel(), "Attribute " + attr + " has " + values.length
@@ -117,38 +129,52 @@ public abstract class OutputManager {
                     }
                 } else {
                     // A single value
-                    armValues.put(attr, type.toRedisString(attributeValue));
-                    switch (type) {
-                        case NUMBER:
-                        case BOOLEAN:
-                            addSearchRegister(attr, type.getSearchRegisterScore(attributeValue),
-                                    snapshotId, jedis, executionId);
-                    }
+                    armValues.put(attr, attrType.toRedisString(attrValue));
+                    addSearchRegister(jedis, objectId, attr, attrType, attrValue, objectId);
                 }
             } else {
                 DTLogger.warn(getChannel(), "Attribute " + attr + " not found in class " + retrievedClass);
             }
         }
 
-        // Save the snapshot
-        DTLogger.info(getChannel(), "Saved snapshot: " + snapshotId);
+        // Save the object
+        DTLogger.info(getChannel(), "Saved snapshot: " + objectId);
         DTLogger.info(getChannel(), "---");
+        jedis.hset(objectId, armValues);
 
-        jedis.hset(snapshotId, armValues);
-        jedis.zadd(processedObjectsSetIdentifier, 0, snapshotId);
+        // Add to a set with references to all saved instances
+        jedis.zadd(objectIdPrefix, 0, objectId);
     }
 
-    protected String generateOutputObjectId(MObjectState objstate) {
-        return String.format(
-                "DTOutputSnapshot:%s:%s:%s",
-                StringUtils.removeQuotes(getAttributeAsString(objstate, "twinId")),
-                StringUtils.removeQuotes(getAttributeAsString(objstate, "executionId")),
-                StringUtils.removeQuotes(getAttributeAsString(objstate, "timestamp")));
+    /**
+     * Generates and returns an identifier for an object to be stored in the data lake.
+     * @param objstate The object state to generate the identifier from.
+     * @return The identifier for the object: [objectIdPrefix]:[twinId]:[executionId]:[timestamp]
+     */
+    private String generateOutputObjectId(MObjectState objstate) {
+        String twinId = USEUtils.getAttributeAsString(objstate, "twinId");
+        String executionId = USEUtils.getAttributeAsString(objstate, "executionId");
+        String timestamp = USEUtils.getAttributeAsString(objstate, "timestamp");
+        assert twinId != null;
+        assert executionId != null;
+        return objectIdPrefix
+            + ":" + StringUtils.removeQuotes(twinId)
+            + ":" + StringUtils.removeQuotes(executionId)
+            + ":" + timestamp;
     }
 
-    private String[] extractValuesFromCollection(String value) {
-        value = value.replaceAll("(?:Set|Bag|OrderedSet|Sequence)\\{(.*)}", "$1");
-        return value.split(",");
+    /**
+     * Converts an USE collection value to an array of values.
+     * @param collection The collection value to convert.
+     * @return An array of strings containing each value in the collection.
+     */
+    private String[] extractValuesFromCollection(String collection, AttributeType baseType) {
+        collection = collection.replaceAll("(?:Set|Bag|OrderedSet|Sequence)\\{(.*)}", "$1");
+        String[] result = collection.split(",");
+        for (int i = 0; i < result.length; i++) {
+            result[i] = baseType.toRedisString(result[i]);
+        }
+        return result;
     }
 
 }
