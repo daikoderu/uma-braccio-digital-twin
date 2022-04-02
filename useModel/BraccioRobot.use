@@ -283,8 +283,6 @@ abstract class BraccioSnapshot < Snapshot
         currentSpeeds : Sequence(Real)
         moving : Boolean
             derive: Sequence{1..6}->exists(i | self.currentSpeeds->at(i) > 0)
-        processingQueue : Boolean
-            init: false
 
 end
 
