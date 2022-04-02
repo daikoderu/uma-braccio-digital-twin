@@ -35,7 +35,6 @@ public class OutputSnapshotsManager extends OutputManager {
         attributeSpecification.set("targetAngles", AttributeType.NUMBER, NUMBER_OF_SERVOS);
         attributeSpecification.set("currentSpeeds", AttributeType.NUMBER, NUMBER_OF_SERVOS);
         attributeSpecification.set("moving", AttributeType.BOOLEAN);
-        attributeSpecification.set("processingQueue", AttributeType.BOOLEAN);
     }
 
     /**
