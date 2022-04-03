@@ -21,9 +21,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * @author Paula Muñoz - University of Málaga
- *
- * Plugin's main class
+ * @author Paula Muñoz, Daniel Pérez - University of Málaga
+ * Plugin's main class.
  */
 public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
 
@@ -49,9 +48,9 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     }
 
     /**
-     * This is the Action Method called from the Action Proxy
-     *
-     * @param pluginAction This is the reference to the current USE running instance.
+     * This is the Action Method called from the Action Proxy. This is called when the
+     * user presses the plugin button.
+     * @param pluginAction Reference to the currently running USE instance
      */
     public void performAction(IPluginAction pluginAction) {
         if (!connectionIsActive) {
@@ -61,10 +60,13 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
         }
     }
 
+    /**
+     * Creates a connection between USE and the data lake.
+     * @param pluginAction Reference to the currently running USE instance
+     */
     private void connect(IPluginAction pluginAction) {
         UseSystemApi api = UseSystemApi.create(pluginAction.getSession());
         jedisPool = new JedisPool(new JedisPoolConfig(), REDIS_HOSTNAME);
-
         if (checkConnectionWithDatabase()) {
 
             // Initialize USE model
@@ -82,10 +84,10 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
             // Create subscribing threads
             Thread outChannelThread = new Thread(
                     new SubService(api, jedisPool, DTPubSub.DT_OUT_CHANNEL),
-                    "subscriber " + DTPubSub.DT_OUT_CHANNEL + " thread");
+                    DTPubSub.DT_OUT_CHANNEL + " subscriber thread");
             Thread commandOutChannelThread = new Thread(
                     new SubService(api, jedisPool, DTPubSub.COMMAND_OUT_CHANNEL),
-                    "subscriber " + DTPubSub.COMMAND_OUT_CHANNEL + " thread");
+                    DTPubSub.COMMAND_OUT_CHANNEL + " subscriber thread");
             outChannelThread.start();
             commandOutChannelThread.start();
 
@@ -93,6 +95,9 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
         }
     }
 
+    /**
+     * Stops the connection between USE and the data lake.
+     */
     private void disconnect() {
         outPublisher.stop();
         commandOutPublisher.stop();
@@ -102,7 +107,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
 
     /**
      * Checks that the connection with the Data Lake works properly.
-     * Prints out "Connection Successful" if Java successfully connects to the Redis server.
+     * Prints out "Connection successful" if Java successfully connects to the Redis server.
      * @return true if connection is successful, false otherwise.
      */
     private boolean checkConnectionWithDatabase() {
@@ -128,6 +133,10 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
         }
     }
 
+    /**
+     * Initializes the USE model
+     * @param api USE system API instance to interact with the currently displayed object diagram
+     */
     private void initializeModel(UseSystemApi api) {
         long posixTime = System.currentTimeMillis();
         StringValue stringValue = new StringValue(posixTime + "");

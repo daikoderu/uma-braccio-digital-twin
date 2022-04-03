@@ -8,9 +8,8 @@ import redis.clients.jedis.JedisPool;
 import utils.DTLogger;
 
 /**
- *
- * @author Paula Muñoz - University of Málaga
- *
+ * @author Paula Muñoz, Daniel Pérez - University of Málaga
+ * Class for a thread that generates ("publishes") events whenever new output snapshot or command objects appear.
  */
 public class OutPubService extends PubService {
 	
@@ -21,19 +20,19 @@ public class OutPubService extends PubService {
 	private final OutputManager output;
 	
 	/**
-	 * Default constructor
-	 * 
-	 * @param api			USE system API instance to interact with the currently displayed object diagram.
-	 * @param jedisPool		Jedis client pool, connected to the Data Lake
-	 * @param sleepTime		Milliseconds between each check in the database.
+	 * Default constructor.
+	 * @param channel The channel to send the event to
+	 * @param api USE system API instance to interact with the currently displayed object diagram
+	 * @param jedisPool The Jedis client pool connected to the data lake
+	 * @param sleepTime Milliseconds between each check in the database
 	 */
 	public OutPubService(String channel, UseSystemApi api, JedisPool jedisPool, int sleepTime, OutputManager output) {
 		super(channel);
 		this.api = api;
 		this.jedisPool = jedisPool;
 		this.sleepTime = sleepTime;
-		this.running = true;
 		this.output = output;
+		running = true;
 	}
 	
 	/**
@@ -49,16 +48,13 @@ public class OutPubService extends PubService {
             }
             
             // Check for new snapshots
-            Jedis jedisTemporalConnection = jedisPool.getResource();
-            try {
+            try (Jedis jedisTemporalConnection = jedisPool.getResource()) {
             	if (!output.getObjectsFromModel(api).isEmpty()) {
             		jedisTemporalConnection.publish(getChannel(), "New Information");
             		DTLogger.info(this, "New Information");
             	}
             } catch (Exception ex) {
                ex.printStackTrace();
-            } finally {
-               jedisPool.returnResource(jedisTemporalConnection);
             }
         }
     }

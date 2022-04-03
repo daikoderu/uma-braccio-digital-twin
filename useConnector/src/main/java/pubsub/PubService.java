@@ -1,9 +1,8 @@
 package pubsub;
 
 /**
- *
- * @author Paula Muñoz - University of Málaga
- *
+ * @author Paula Muñoz, Daniel Pérez - University of Málaga
+ * Class for a thread that generates ("publishes") events.
  */
 public abstract class PubService implements Runnable {
 

@@ -7,9 +7,8 @@ import redis.clients.jedis.JedisPool;
 import utils.DTLogger;
 
 /**
- * 
- * @author Paula Muñoz - University of Málaga
- * 
+ * @author Paula Muñoz, Daniel Pérez - University of Málaga
+ * Class for a thread that subscribes to events from a PubService.
  */
 public class SubService implements Runnable {
 	
@@ -20,8 +19,8 @@ public class SubService implements Runnable {
 	/**
 	 * Default constructor
 	 * 
-	 * @param api				USE system API instance to interact with the currently displayed object diagram.
-	 * @param jedisPool			Jedis client pool, connected to the Data Lake
+	 * @param api USE system API instance to interact with the currently displayed object diagram
+	 * @param jedisPool	Jedis client pool, connected to the Data Lake
 	 * @param subscribedChannel	Channel you want to subscribe to
 	 */
 	public SubService(UseSystemApi api, JedisPool jedisPool, String subscribedChannel) {
@@ -34,14 +33,9 @@ public class SubService implements Runnable {
 	 * Subscribes to the publisher channel specified in the constructor.
 	 */
 	public void run() {
-        try {
-        	DTLogger.info("Subscribing to " + subscribedChannel);
-        	Jedis jedisSubscriber = jedisPool.getResource();
-        	Jedis jedisCrud = jedisPool.getResource();
+		DTLogger.info("Subscribing to " + subscribedChannel);
+        try (Jedis jedisSubscriber = jedisPool.getResource(); Jedis jedisCrud = jedisPool.getResource()) {
         	jedisSubscriber.subscribe(new DTPubSub(api, jedisCrud), subscribedChannel);
-		    jedisPool.returnResource(jedisSubscriber);
-		    jedisPool.returnResource(jedisCrud);
-			DTLogger.info("Subscription to " + subscribedChannel + " ended");
         } catch (Exception ex) {
             ex.printStackTrace();
         }    

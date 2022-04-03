@@ -9,6 +9,10 @@ import org.tzi.use.uml.sys.MObjectState;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @author Daniel Pérez - University of Málaga
+ * A collection of utility methods for USE model manipulation.
+ */
 public class USEUtils {
 
     /**
@@ -43,7 +47,6 @@ public class USEUtils {
 
     /**
      * Retrieves an attribute with the name <i>attributeName</i> from an USE object state.
-     *
      * @param objstate State of the USE object.
      * @param attributeName Name of the attribute whose value is retrieved.
      * @return The corresponding attribute value, or null if the attribute is not found.

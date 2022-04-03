@@ -2,6 +2,10 @@ package digital.twin.attributes;
 
 import utils.StringUtils;
 
+/**
+ * @author Daniel Pérez - University of Málaga
+ * Types of each attribute in an AttributeSpecification.
+ */
 public enum AttributeType {
 
     BOOLEAN, NUMBER, STRING;

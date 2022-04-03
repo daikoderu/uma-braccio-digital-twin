@@ -10,9 +10,8 @@ import redis.clients.jedis.Jedis;
 import java.util.List;
 
 /**
- *
- * @author Paula Muñoz - University of Málaga
- *
+ * @author Paula Muñoz, Daniel Pérez - University of Málaga
+ * OutputManager that retrieves all Command instances and serializes them for storage in the data lake.
  */
 public class CommandsManager extends OutputManager {
 

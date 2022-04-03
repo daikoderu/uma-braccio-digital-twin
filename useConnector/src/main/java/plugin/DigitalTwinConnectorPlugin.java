@@ -4,8 +4,7 @@ import org.tzi.use.runtime.IPluginRuntime;
 import org.tzi.use.runtime.impl.Plugin;
 
 /**
- * @author Paula Muñoz - University of Málaga
- *
+ * @author Paula Muñoz, Daniel Pérez - University of Málaga
  * This class is needed for the proper interaction between USE and the plugin.
  */
 public class DigitalTwinConnectorPlugin extends Plugin {

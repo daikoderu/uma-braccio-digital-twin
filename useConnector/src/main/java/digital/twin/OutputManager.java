@@ -15,9 +15,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *
- * @author Paula Muñoz - University of Málaga
- *
+ * @author Paula Muñoz, Daniel Pérez - University of Málaga
+ * Class that retrieves all instances of a USE model class and serializes them for storage in the data lake.
  */
 public abstract class OutputManager {
 
@@ -28,6 +27,13 @@ public abstract class OutputManager {
     private final String retrievedClass;
     private final String objectIdPrefix;
 
+    /**
+     * Default constructor. Constructors from subclasses must set the type of the attributes to serialize
+     * using the attributeSpecification instance.
+     * @param channel The channel this OutputManager is created from.
+     * @param retrievedClass The class whose instances to retrieve and serialize.
+     * @param objectIdPrefix A prefix to be appended to the identifiers of all serialized instances.
+     */
     public OutputManager(String channel, String retrievedClass, String objectIdPrefix) {
         attributeSpecification = new AttributeSpecification();
         attributeSpecification.set("twinId", AttributeType.STRING);
@@ -38,13 +44,16 @@ public abstract class OutputManager {
         this.objectIdPrefix = objectIdPrefix;
     }
 
+    /**
+     * Returns the channel this OutputManager is created from.
+     * @return The channel this OutputManager is associated with.
+     */
     public String getChannel() {
         return channel;
     }
 
     /**
-     * Retrieves the objects of class retrievedClass from the currently displayed object diagram.
-     *
+     * Retrieves the objects of class <i>retrievedClass</i> from the currently displayed object diagram.
      * @param api USE system API instance to interact with the currently displayed object diagram.
      * @return The list of objects available in the currently displayed object diagram.
      */
@@ -56,7 +65,7 @@ public abstract class OutputManager {
      * Saves all objects to the data lake.
      * @param api The USE system API instance to interact with the currently displayed object diagram.
      * @param jedis An instance of the Jedis client to access the data lake.
-     * @throws UseApiException In case of any error related to the USE API
+     * @throws UseApiException Any error related to the USE API.
      */
     public abstract void saveObjectsToDataLake(UseSystemApi api, Jedis jedis) throws UseApiException;
 
@@ -64,7 +73,7 @@ public abstract class OutputManager {
      * Adds a search register to the database to maintain a list of all states of an object for a digital twin
      * and an execution id.
      * @param jedis An instance of the Jedis client to access the data lake.
-     * @param twinIdExecutionId The twin ID and execution ID of the object: [objectIdPrefix]:[twinId]:[executionId]
+     * @param twinIdExecutionId The twin ID and execution ID of the object: "[objectIdPrefix]:[twinId]:[executionId]".
      * @param attributeName The name of the attribute to save.
      * @param type The type of the attribute to save.
      * @param value The value to save, as a USE value.
@@ -92,8 +101,7 @@ public abstract class OutputManager {
 
     /**
      * Auxiliary method to store the object in the database, extracted from the diagram.
-     *
-     * @param jedis    An instance of the Jedis client to access the data lake.
+     * @param jedis An instance of the Jedis client to access the data lake.
      * @param snapshot The object to store.
      */
     protected void saveOneObject(Jedis jedis, MObjectState snapshot) {
@@ -149,7 +157,7 @@ public abstract class OutputManager {
     /**
      * Generates and returns an identifier for an object to be stored in the data lake.
      * @param objstate The object state to generate the identifier from.
-     * @return The identifier for the object: [objectIdPrefix]:[twinId]:[executionId]:[timestamp]
+     * @return The identifier for the object: "[objectIdPrefix]:[twinId]:[executionId]:[timestamp]".
      */
     private String generateOutputObjectId(MObjectState objstate) {
         String twinId = USEUtils.getAttributeAsString(objstate, "twinId");

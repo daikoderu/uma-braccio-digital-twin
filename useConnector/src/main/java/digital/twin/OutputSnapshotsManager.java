@@ -10,17 +10,15 @@ import redis.clients.jedis.Jedis;
 import java.util.List;
 
 /**
- *
- * @author Paula Muñoz - University of Málaga
- *
+ * @author Paula Muñoz, Daniel Pérez - University of Málaga
+ * OutputManager that retrieves all OutputSnapshot instances and serializes them for storage in the data lake.
  */
 public class OutputSnapshotsManager extends OutputManager {
 
     private static final int NUMBER_OF_SERVOS = 6;
 
     /**
-     * Sets the type of the attributes in a AttributeSpecification to parse the attributes for the Data Lake.
-     * For example, Booleans will turn into 0 or 1; Numbers will be transformed into Floats.
+     * Default constructor.
      */
     public OutputSnapshotsManager() {
         super(DTPubSub.DT_OUT_CHANNEL, "OutputBraccioSnapshot", "DTOutputSnapshot");
@@ -36,7 +34,7 @@ public class OutputSnapshotsManager extends OutputManager {
      *
      * @param api USE system API instance to interact with the currently displayed object diagram.
      * @param jedis An instance of the Jedis client to access the data lake.
-     * @throws UseApiException In case of any error related to the USE API
+     * @throws UseApiException Any error related to the USE API.
      */
     public void saveObjectsToDataLake(UseSystemApi api, Jedis jedis) throws UseApiException {
         List<MObjectState> outputSnapshots = getObjectsFromModel(api);
