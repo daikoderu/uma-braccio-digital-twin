@@ -259,6 +259,42 @@ constraints
     context BraccioRobot inv sixAngles:
         self.minServoAngles->size() = 6 and self.maxServoAngles->size() = 6
 
+abstract class RobotMonitor < ActiveObject
+
+    attributes
+
+        -- milliseconds to wait between snapshots
+        timeBetweenActions : Integer
+            init: 100
+
+        timeForNextAction : Integer
+            init: 100
+
+    operations
+        action()
+        begin
+            self.timeForNextAction := self.timeForNextAction - self.clock.resolution;
+            if self.timeForNextAction <= 0 then
+                self.periodicAction();
+                self.timeForNextAction := self.timeForNextAction + self.timeBetweenActions
+            end
+        end
+
+        periodicAction()
+        begin
+        end
+
+end
+
+association Monitoring between
+    RobotMonitor[*] role monitor
+    BraccioRobot[1] role robot
+end
+
+constraints
+
+    context RobotMonitor inv positiveTimeBetweenActions:
+        self.timeBetweenActions > 0
 
 -- ----------------------------------------------------------------------------
 -- Snapshots                                                                 --
@@ -303,37 +339,84 @@ class OutputBraccioSnapshot < BraccioSnapshot
 
 end
 
-association Monitoring between
-    SnapshotMonitor[*] role snapshotMonitor
-    BraccioRobot[1] role robot
-end
-
-class SnapshotMonitor < ActiveObject
-
-    attributes
-
-        -- milliseconds to wait between snapshots
-        timeBetweenSnapshots : Integer
-            init: 100
-
-        timeForNextSnapshot : Integer
-            init: 100
+class SnapshotMonitor < RobotMonitor
 
     operations
-        action()
+        periodicAction()
         begin
-            self.timeForNextSnapshot := self.timeForNextSnapshot - self.clock.resolution;
-            if self.timeForNextSnapshot <= 0 then
-                declare snapshot : OutputBraccioSnapshot;
-                snapshot := new OutputBraccioSnapshot;
-                snapshot.init(self.robot, self.clock.now);
-                self.timeForNextSnapshot := self.timeForNextSnapshot + self.timeBetweenSnapshots
-            end
+            declare snapshot : OutputBraccioSnapshot;
+            snapshot := new OutputBraccioSnapshot;
+            snapshot.init(self.robot, self.clock.now)
         end
 
 end
 
-constraints
 
-    context SnapshotMonitor inv positiveTimeBetweenSnapshots:
-        self.timeBetweenSnapshots > 0
+-- ----------------------------------------------------------------------------
+-- Commands                                                                  --
+-- ----------------------------------------------------------------------------
+
+abstract class Command
+
+    attributes
+        twinId : String
+        executionId : String
+        timestamp : Integer
+        action : String
+            derive: getAction()
+        arguments : String
+
+    operations
+
+        getAction() : String
+            = null
+
+        execute(robot : BraccioRobot, now : Integer) : CommandResult
+        begin
+        end
+        pre: self.result = null
+        post: self.result <> null
+
+        makeResponse(now : Integer, return : String) : CommandResult
+        begin
+            result := new CommandResult;
+            insert (self, result) into CommandReturn;
+            result.return := return;
+            result.timestamp := now
+        end
+
+
+end
+
+class CommandResult
+
+    attributes
+        return : String
+        timestamp : Integer
+
+end
+
+association CommandReturn between 
+    Command[1] role command
+    CommandResult[0..1] role result
+end
+
+class GoToUprightPositionCommand < Command
+
+    operations
+
+        getAction() : String
+            = 'goToUprightPosition'
+
+        execute(robot : BraccioRobot, now : Integer) : CommandResult
+        begin
+            declare uprightPosition : Sequence(Integer);
+            uprightPosition := Sequence{90,90,90,90,90,73};
+            for i in Sequence{1..6} do
+                robot.servo->at(i).targetAngle := uprightPosition->at(i);
+                robot.servo->at(i).currentSpeed := robot.servo->at(i).maxSpeed
+            end;
+            result := self.makeResponse(now, 'ok')
+        end
+
+end
