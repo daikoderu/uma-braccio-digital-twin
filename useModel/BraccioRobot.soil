@@ -41,8 +41,12 @@ reset
 !insert (robot, wristRotServo) into Parts
 !insert (robot, gripperServo) into Parts
 
-!new SnapshotMonitor('snapshotMonitor')
-!insert (snapshotMonitor, robot) into Monitoring
-!insert (ck, snapshotMonitor) into Time
+!new OutputSnapshotMonitor('outputSnapshotMonitor')
+!insert (outputSnapshotMonitor, robot) into Monitoring
+!insert (ck, outputSnapshotMonitor) into Time
+
+!new CommandMonitor('commandMonitor')
+!insert (commandMonitor, robot) into Monitoring
+!insert (ck, commandMonitor) into Time
 
 check

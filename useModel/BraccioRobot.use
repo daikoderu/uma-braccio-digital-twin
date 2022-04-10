@@ -4,6 +4,8 @@ model BraccioRobot
 -- Time Management                                                           --
 -- ----------------------------------------------------------------------------
 
+
+-- 
 class Clock
 
     attributes
@@ -42,6 +44,8 @@ class Clock
 
 end
 
+
+-- Class for objects that are affected by time passage
 abstract class ActiveObject
 
     -- action that will happen after each tick
@@ -51,10 +55,12 @@ abstract class ActiveObject
 
 end
 
+
 association Time between
     Clock[1] role clock
     ActiveObject[*] role ao ordered
 end
+
 
 constraints
     context Clock inv OnlyOneClock: 
@@ -62,9 +68,41 @@ constraints
 
 
 -- ----------------------------------------------------------------------------
+-- Processables                                                              --
+-- ----------------------------------------------------------------------------
+
+
+-- Class to specify anything that must be processed before synching
+-- it with the Data Lake.
+abstract class Processable
+
+    attributes
+
+        -- When was this processable generated?
+        timestamp : Integer
+
+        -- Has it been processed yet?
+        isProcessed : Boolean
+            init: false
+
+        -- When it has been processed?
+        whenProcessed : Integer
+
+end
+
+
+constraints
+
+    context Processable inv processedAfterCreated:
+        self.whenProcessed >= self.timestamp
+
+
+-- ----------------------------------------------------------------------------
 -- Robot                                                                     --
 -- ----------------------------------------------------------------------------
 
+
+-- Class that specifies a robot servo.
 class Servo < ActiveObject
 
     attributes
@@ -122,6 +160,7 @@ class Servo < ActiveObject
         post: self.currentAngle = self.targetAngle implies self.currentSpeed = 0.0
 
 end
+
 
 -- Class that specifies a Braccio Robot.
 -- Positions are specified as sequences of 6 integers (one for each servo position)
@@ -224,21 +263,24 @@ class BraccioRobot
         pre notMoving: not self.moving
         post targetAngleSet: Sequence{1..6}->forAll(i | self.servo->at(i).targetAngle = position->at(i))
 
+
         -- Auxiliary operations
         ----------------------------------------------------------------------------------
+
         isValidPosition(position : Sequence(Integer)) : Boolean
             = position->size() = 6 and
             Sequence{1..6}->forAll(i |
                 position->at(i) >= self.minServoAngles->at(i) and
                 position->at(i) <= self.maxServoAngles->at(i))
 
-
 end
+
 
 composition Parts between
     BraccioRobot[1] role robot
     Servo[6] role servo ordered
 end
+
 
 constraints
 
@@ -259,6 +301,9 @@ constraints
     context BraccioRobot inv sixAngles:
         self.minServoAngles->size() = 6 and self.maxServoAngles->size() = 6
 
+
+-- ActiveObject that does something periodically to the robot.
+-- Concrete classes must implement periodicAction().
 abstract class RobotMonitor < ActiveObject
 
     attributes
@@ -286,25 +331,27 @@ abstract class RobotMonitor < ActiveObject
 
 end
 
+
 association Monitoring between
     RobotMonitor[*] role monitor
     BraccioRobot[1] role robot
 end
+
 
 constraints
 
     context RobotMonitor inv positiveTimeBetweenActions:
         self.timeBetweenActions > 0
 
+
 -- ----------------------------------------------------------------------------
 -- Snapshots                                                                 --
 -- ----------------------------------------------------------------------------
 
-abstract class Snapshot
+
+abstract class Snapshot < Processable
 
     attributes
-
-        timestamp : Integer
         executionId : String
 
 end
@@ -312,7 +359,6 @@ end
 abstract class BraccioSnapshot < Snapshot
 
     attributes
-
         twinId : String
         currentAngles : Sequence(Real)
         targetAngles : Sequence(Real)
@@ -325,21 +371,23 @@ end
 class OutputBraccioSnapshot < BraccioSnapshot
 
     operations
-
         init(arm : BraccioRobot, now : Integer)
         begin
+            self.timestamp := now;
+            self.isProcessed := true;
+            self.whenProcessed := now;
+            
             self.twinId := arm.twinId;
             self.executionId := arm.executionId;
-            self.timestamp := now;
 
             self.currentAngles := arm.readAllServos();
             self.targetAngles := arm.servo.targetAngle;
-            self.currentSpeeds := arm.servo.currentSpeed
+            self.currentSpeeds := arm.servo.currentSpeed;
         end
 
 end
 
-class SnapshotMonitor < RobotMonitor
+class OutputSnapshotMonitor < RobotMonitor
 
     operations
         periodicAction()
@@ -356,12 +404,11 @@ end
 -- Commands                                                                  --
 -- ----------------------------------------------------------------------------
 
-abstract class Command
+abstract class Command < Processable
 
     attributes
         twinId : String
         executionId : String
-        timestamp : Integer
         action : String
             derive: getAction()
         arguments : String
@@ -388,11 +435,10 @@ abstract class Command
 
 end
 
-class CommandResult
+class CommandResult < Processable
 
     attributes
         return : String
-        timestamp : Integer
 
 end
 
@@ -417,6 +463,15 @@ class GoToUprightPositionCommand < Command
                 robot.servo->at(i).currentSpeed := robot.servo->at(i).maxSpeed
             end;
             result := self.makeResponse(now, 'ok')
+        end
+
+end
+
+class CommandMonitor < RobotMonitor
+
+    operations
+        periodicAction()
+        begin
         end
 
 end
