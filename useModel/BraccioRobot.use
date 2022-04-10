@@ -382,7 +382,7 @@ abstract class Command
             result := new CommandResult;
             insert (self, result) into CommandReturn;
             result.return := return;
-            result.timestamp := now
+            result.timestamp := now;
         end
 
 
