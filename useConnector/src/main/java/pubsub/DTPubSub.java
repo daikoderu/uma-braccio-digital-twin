@@ -3,10 +3,10 @@ package pubsub;
 import digital.twin.CommandsManager;
 import digital.twin.OutputSnapshotsManager;
 import org.tzi.use.api.UseApiException;
-import org.tzi.use.api.UseSystemApi;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPubSub;
 import utils.DTLogger;
+import utils.UseFacade;
 
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
@@ -16,21 +16,19 @@ public class DTPubSub extends JedisPubSub {
 
     public static final String DT_OUT_CHANNEL = "DTOutChannel";
     public static final String COMMAND_OUT_CHANNEL = "CommandOutChannel";
-    private final UseSystemApi api;
     private final Jedis jedis;
     private final OutputSnapshotsManager dtOutSnapshotsManager;
     private final CommandsManager commandsManager;
 
     /**
      * Default constructor.
-     * @param api USE system API instance to interact with the currently displayed object diagram.
+     * @param useApi USE API facade instance to interact with the currently displayed object diagram
      * @param jedis An instance of the Jedis client to access the data lake.
      */
-    public DTPubSub(UseSystemApi api, Jedis jedis) {
-        this.api = api;
+    public DTPubSub(UseFacade useApi, Jedis jedis) {
         this.jedis = jedis;
-        dtOutSnapshotsManager = new OutputSnapshotsManager();
-        commandsManager = new CommandsManager();
+        dtOutSnapshotsManager = new OutputSnapshotsManager(useApi);
+        commandsManager = new CommandsManager(useApi);
     }
 
     /**
@@ -44,7 +42,7 @@ public class DTPubSub extends JedisPubSub {
 
             case DT_OUT_CHANNEL: // Info leaving USE
                 try {
-                    this.dtOutSnapshotsManager.saveObjectsToDataLake(api, jedis);
+                    this.dtOutSnapshotsManager.saveObjectsToDataLake(jedis);
                     DTLogger.info("New Output Snapshots saved");
                 } catch (UseApiException ex) {
                     ex.printStackTrace();
@@ -53,7 +51,7 @@ public class DTPubSub extends JedisPubSub {
 
             case COMMAND_OUT_CHANNEL: // Commands sent to the DT system
                 try {
-                    this.commandsManager.saveObjectsToDataLake(api, jedis);
+                    this.commandsManager.saveObjectsToDataLake(jedis);
                     DTLogger.info("New Commands saved");
                 } catch (UseApiException ex) {
                     ex.printStackTrace();

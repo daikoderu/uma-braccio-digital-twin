@@ -15,7 +15,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import utils.DTLogger;
-import utils.USEUtils;
+import utils.UseFacade;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,6 +38,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     private boolean connectionIsActive;
     private OutPubService outPublisher;
     private OutPubService commandOutPublisher;
+    private UseFacade useApi;
 
     /**
      * Default constructor
@@ -50,7 +51,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     /**
      * This is the Action Method called from the Action Proxy. This is called when the
      * user presses the plugin button.
-     * @param pluginAction Reference to the currently running USE instance
+     * @param pluginAction A reference to the currently running USE instance.
      */
     public void performAction(IPluginAction pluginAction) {
         if (!connectionIsActive) {
@@ -62,31 +63,31 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
 
     /**
      * Creates a connection between USE and the data lake.
-     * @param pluginAction Reference to the currently running USE instance
+     * @param pluginAction A reference to the currently running USE instance.
      */
     private void connect(IPluginAction pluginAction) {
-        UseSystemApi api = UseSystemApi.create(pluginAction.getSession());
+        setApi(pluginAction);
         jedisPool = new JedisPool(new JedisPoolConfig(), REDIS_HOSTNAME);
         if (checkConnectionWithDatabase()) {
 
             // Initialize USE model
-            initializeModel(api);
+            initializeModel();
 
             // Create publishing service
-            outPublisher = new OutPubService(DTPubSub.DT_OUT_CHANNEL, api, jedisPool,
-                    SLEEP_TIME_MS, new OutputSnapshotsManager());
-            commandOutPublisher = new OutPubService(DTPubSub.COMMAND_OUT_CHANNEL, api, jedisPool,
-                    SLEEP_TIME_MS, new CommandsManager());
+            outPublisher = new OutPubService(DTPubSub.DT_OUT_CHANNEL, jedisPool,
+                    SLEEP_TIME_MS, new OutputSnapshotsManager(useApi));
+            commandOutPublisher = new OutPubService(DTPubSub.COMMAND_OUT_CHANNEL, jedisPool,
+                    SLEEP_TIME_MS, new CommandsManager(useApi));
             ensureThreadPool();
             executor.submit(outPublisher);
             executor.submit(commandOutPublisher);
 
             // Create subscribing threads
             Thread outChannelThread = new Thread(
-                    new SubService(api, jedisPool, DTPubSub.DT_OUT_CHANNEL),
+                    new SubService(useApi, jedisPool, DTPubSub.DT_OUT_CHANNEL),
                     DTPubSub.DT_OUT_CHANNEL + " subscriber thread");
             Thread commandOutChannelThread = new Thread(
-                    new SubService(api, jedisPool, DTPubSub.COMMAND_OUT_CHANNEL),
+                    new SubService(useApi, jedisPool, DTPubSub.COMMAND_OUT_CHANNEL),
                     DTPubSub.COMMAND_OUT_CHANNEL + " subscriber thread");
             outChannelThread.start();
             commandOutChannelThread.start();
@@ -103,6 +104,15 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
         commandOutPublisher.stop();
         connectionIsActive = false;
         DTLogger.info("Connection ended successfully");
+    }
+
+    /**
+     * Sets the USE API instance to use.
+     * @param pluginAction A reference to the currently running USE instance.
+     */
+    private void setApi(IPluginAction pluginAction) {
+        UseSystemApi api = UseSystemApi.create(pluginAction.getSession());
+        useApi = new UseFacade(api);
     }
 
     /**
@@ -134,17 +144,14 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     }
 
     /**
-     * Initializes the USE model
-     * @param api USE system API instance to interact with the currently displayed object diagram
+     * Initializes the USE model.
      */
-    private void initializeModel(UseSystemApi api) {
-        long posixTime = System.currentTimeMillis();
-        StringValue stringValue = new StringValue(posixTime + "");
+    private void initializeModel() {
+        String posixTime = System.currentTimeMillis() + "";
 
         // Initialize execution IDs of all robots
-        MAttribute execIdAttr = USEUtils.getAttribute(api, ROBOT_CLASSNAME, EXECUTION_ID_ATTRIBUTE);
-        for (MObjectState clock : USEUtils.getObjectsOfClass(api, ROBOT_CLASSNAME)) {
-            clock.setAttributeValue(execIdAttr, stringValue);
+        for (MObjectState clock : useApi.getObjectsOfClass(ROBOT_CLASSNAME)) {
+            useApi.setAttribute(clock, EXECUTION_ID_ATTRIBUTE, posixTime);
         }
     }
 

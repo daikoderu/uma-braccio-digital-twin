@@ -1,10 +1,9 @@
 package pubsub;
 
-import org.tzi.use.api.UseSystemApi;
-
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import utils.DTLogger;
+import utils.UseFacade;
 
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
@@ -12,19 +11,19 @@ import utils.DTLogger;
  */
 public class SubService implements Runnable {
 	
-	private final UseSystemApi api;
+	private final UseFacade useApi;
 	private final JedisPool jedisPool;
 	private final String subscribedChannel;
 	
 	/**
 	 * Default constructor
 	 * 
-	 * @param api USE system API instance to interact with the currently displayed object diagram
+	 * @param useApi USE API facade instance to interact with the currently displayed object diagram.
 	 * @param jedisPool	Jedis client pool, connected to the Data Lake
 	 * @param subscribedChannel	Channel you want to subscribe to
 	 */
-	public SubService(UseSystemApi api, JedisPool jedisPool, String subscribedChannel) {
-		this.api = api;
+	public SubService(UseFacade useApi, JedisPool jedisPool, String subscribedChannel) {
+		this.useApi = useApi;
 		this.jedisPool = jedisPool;
 		this.subscribedChannel = subscribedChannel;
 	}
@@ -35,7 +34,7 @@ public class SubService implements Runnable {
 	public void run() {
 		DTLogger.info("Subscribing to " + subscribedChannel);
         try (Jedis jedisSubscriber = jedisPool.getResource(); Jedis jedisCrud = jedisPool.getResource()) {
-        	jedisSubscriber.subscribe(new DTPubSub(api, jedisCrud), subscribedChannel);
+        	jedisSubscriber.subscribe(new DTPubSub(useApi, jedisCrud), subscribedChannel);
         } catch (Exception ex) {
         	DTLogger.error("An error ocurred:");
             ex.printStackTrace();

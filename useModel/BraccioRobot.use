@@ -364,7 +364,6 @@ abstract class BraccioSnapshot < Snapshot
         targetAngles : Sequence(Real)
         currentSpeeds : Sequence(Real)
         moving : Boolean
-            derive: Sequence{1..6}->exists(i | self.currentSpeeds->at(i) > 0)
 
 end
 
@@ -373,16 +372,14 @@ class OutputBraccioSnapshot < BraccioSnapshot
     operations
         init(arm : BraccioRobot, now : Integer)
         begin
-            self.timestamp := now;
-            self.isProcessed := true;
-            self.whenProcessed := now;
-            
             self.twinId := arm.twinId;
             self.executionId := arm.executionId;
+            self.timestamp := now;
 
             self.currentAngles := arm.readAllServos();
             self.targetAngles := arm.servo.targetAngle;
             self.currentSpeeds := arm.servo.currentSpeed;
+            self.moving := Sequence{1..6}->exists(i | self.currentSpeeds->at(i) > 0)
         end
 
 end

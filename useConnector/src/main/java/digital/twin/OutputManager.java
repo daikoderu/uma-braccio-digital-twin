@@ -3,12 +3,11 @@ package digital.twin;
 import digital.twin.attributes.AttributeSpecification;
 import digital.twin.attributes.AttributeType;
 import org.tzi.use.api.UseApiException;
-import org.tzi.use.api.UseSystemApi;
 import org.tzi.use.uml.sys.MObjectState;
 import redis.clients.jedis.Jedis;
 import utils.DTLogger;
 import utils.StringUtils;
-import utils.USEUtils;
+import utils.UseFacade;
 
 import java.util.HashMap;
 import java.util.List;
@@ -21,8 +20,10 @@ import java.util.Map;
 public abstract class OutputManager {
 
     protected static final String SNAPSHOT_ID = "snapshotId";
+    protected static final String IS_PROCESSED = "isProcessed";
 
     protected final AttributeSpecification attributeSpecification;
+    protected final UseFacade useApi;
     private final String channel;
     private final String retrievedClass;
     private final String objectIdPrefix;
@@ -30,15 +31,17 @@ public abstract class OutputManager {
     /**
      * Default constructor. Constructors from subclasses must set the type of the attributes to serialize
      * using the attributeSpecification instance.
+     * @param useApi USE API facade instance to interact with the currently displayed object diagram.
      * @param channel The channel this OutputManager is created from.
      * @param retrievedClass The class whose instances to retrieve and serialize.
      * @param objectIdPrefix A prefix to be appended to the identifiers of all serialized instances.
      */
-    public OutputManager(String channel, String retrievedClass, String objectIdPrefix) {
+    public OutputManager(UseFacade useApi, String channel, String retrievedClass, String objectIdPrefix) {
         attributeSpecification = new AttributeSpecification();
         attributeSpecification.set("twinId", AttributeType.STRING);
         attributeSpecification.set("executionId", AttributeType.STRING);
         attributeSpecification.set("timestamp", AttributeType.NUMBER);
+        this.useApi = useApi;
         this.channel = channel;
         this.retrievedClass = retrievedClass;
         this.objectIdPrefix = objectIdPrefix;
@@ -54,20 +57,20 @@ public abstract class OutputManager {
 
     /**
      * Retrieves the objects of class <i>retrievedClass</i> from the currently displayed object diagram.
-     * @param api USE system API instance to interact with the currently displayed object diagram.
      * @return The list of objects available in the currently displayed object diagram.
      */
-    public List<MObjectState> getObjectsFromModel(UseSystemApi api) {
-        return USEUtils.getObjectsOfClass(api, retrievedClass);
+    public List<MObjectState> getUnprocessedModelObjects() {
+        List<MObjectState> result = useApi.getObjectsOfClass(retrievedClass);
+        result.removeIf(obj -> useApi.getAttributeAsString(obj, IS_PROCESSED).equals("true"));
+        return result;
     }
 
     /**
      * Saves all objects to the data lake.
-     * @param api The USE system API instance to interact with the currently displayed object diagram.
      * @param jedis An instance of the Jedis client to access the data lake.
      * @throws UseApiException Any error related to the USE API.
      */
-    public abstract void saveObjectsToDataLake(UseSystemApi api, Jedis jedis) throws UseApiException;
+    public abstract void saveObjectsToDataLake(Jedis jedis) throws UseApiException;
 
     /**
      * Adds a search register to the database to maintain a list of all states of an object for a digital twin
@@ -119,7 +122,7 @@ public abstract class OutputManager {
 
             AttributeType attrType = attributeSpecification.typeOf(attr);
             int multiplicity = attributeSpecification.multiplicityOf(attr);
-            String attrValue = USEUtils.getAttributeAsString(snapshot, attr);
+            String attrValue = useApi.getAttributeAsString(snapshot, attr);
             if (attrValue != null) {
                 DTLogger.info(getChannel(), attr + ": " + attrValue);
                 if (multiplicity > 1) {
@@ -150,6 +153,9 @@ public abstract class OutputManager {
         DTLogger.info(getChannel(), "---");
         jedis.hset(objectId, armValues);
 
+        // Mark object as processed
+        useApi.setAttribute(snapshot, IS_PROCESSED, true);
+
         // Add to a set with references to all saved instances
         jedis.zadd(objectIdPrefix, 0, objectId);
     }
@@ -160,9 +166,9 @@ public abstract class OutputManager {
      * @return The identifier for the object: "[objectIdPrefix]:[twinId]:[executionId]:[timestamp]".
      */
     private String generateOutputObjectId(MObjectState objstate) {
-        String twinId = USEUtils.getAttributeAsString(objstate, "twinId");
-        String executionId = USEUtils.getAttributeAsString(objstate, "executionId");
-        String timestamp = USEUtils.getAttributeAsString(objstate, "timestamp");
+        String twinId = useApi.getAttributeAsString(objstate, "twinId");
+        String executionId = useApi.getAttributeAsString(objstate, "executionId");
+        String timestamp = useApi.getAttributeAsString(objstate, "timestamp");
         assert twinId != null;
         assert executionId != null;
         return objectIdPrefix
