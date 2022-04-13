@@ -2,7 +2,6 @@ package digital.twin;
 
 import digital.twin.attributes.AttributeSpecification;
 import digital.twin.attributes.AttributeType;
-import org.tzi.use.api.UseApiException;
 import org.tzi.use.uml.sys.MObjectState;
 import redis.clients.jedis.Jedis;
 import utils.DTLogger;
@@ -61,16 +60,15 @@ public abstract class OutputManager {
      */
     public List<MObjectState> getUnprocessedModelObjects() {
         List<MObjectState> result = useApi.getObjectsOfClass(retrievedClass);
-        result.removeIf(obj -> useApi.getAttributeAsString(obj, IS_PROCESSED).equals("true"));
+        result.removeIf(obj -> useApi.getBooleanAttribute(obj, IS_PROCESSED));
         return result;
     }
 
     /**
      * Saves all objects to the data lake.
      * @param jedis An instance of the Jedis client to access the data lake.
-     * @throws UseApiException Any error related to the USE API.
      */
-    public abstract void saveObjectsToDataLake(Jedis jedis) throws UseApiException;
+    public abstract void saveObjectsToDataLake(Jedis jedis);
 
     /**
      * Adds a search register to the database to maintain a list of all states of an object for a digital twin
@@ -166,9 +164,9 @@ public abstract class OutputManager {
      * @return The identifier for the object: "[objectIdPrefix]:[twinId]:[executionId]:[timestamp]".
      */
     private String generateOutputObjectId(MObjectState objstate) {
-        String twinId = useApi.getAttributeAsString(objstate, "twinId");
-        String executionId = useApi.getAttributeAsString(objstate, "executionId");
-        String timestamp = useApi.getAttributeAsString(objstate, "timestamp");
+        String twinId = useApi.getStringAttribute(objstate, "twinId");
+        String executionId = useApi.getStringAttribute(objstate, "executionId");
+        int timestamp = useApi.getIntegerAttribute(objstate, "timestamp");
         assert twinId != null;
         assert executionId != null;
         return objectIdPrefix

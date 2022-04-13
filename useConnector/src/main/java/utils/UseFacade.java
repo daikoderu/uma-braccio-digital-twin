@@ -3,9 +3,7 @@ package utils;
 import org.tzi.use.api.UseSystemApi;
 import org.tzi.use.uml.mm.MAttribute;
 import org.tzi.use.uml.mm.MClass;
-import org.tzi.use.uml.ocl.value.BooleanValue;
-import org.tzi.use.uml.ocl.value.StringValue;
-import org.tzi.use.uml.ocl.value.Value;
+import org.tzi.use.uml.ocl.value.*;
 import org.tzi.use.uml.sys.MObject;
 import org.tzi.use.uml.sys.MObjectState;
 
@@ -46,26 +44,103 @@ public class UseFacade {
     }
 
     /**
-     * Retrieves an attribute with the name <i>attributeName</i> from an USE object state.
-     * @param objstate State of the USE object.
-     * @param attributeName Name of the attribute whose value is retrieved.
-     * @return The corresponding attribute value, or null if the attribute is not found.
+     * Returns the value of an integer attribute in the model.
+     * @param objstate The state of the object whose attribute to retrieve.
+     * @param attributeName The name of the attribute to retrieve.
+     * @return The value of the attribute.
+     * @throws ClassCastException If the attribute's type is not an integer.
      */
-    public String getAttributeAsString(MObjectState objstate, String attributeName) {
-        try {
-            return objstate.attributeValue(attributeName).toString();
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
+    public int getIntegerAttribute(MObjectState objstate, String attributeName) {
+        return this.<IntegerValue>getAttributeAux(objstate, attributeName).value();
     }
 
+    /**
+     * Returns the value of a real number attribute in the model.
+     * @param objstate The state of the object whose attribute to retrieve.
+     * @param attributeName The name of the attribute to retrieve.
+     * @return The value of the attribute.
+     * @throws ClassCastException If the attribute's type is not a real number.
+     */
+    public double getRealAttribute(MObjectState objstate, String attributeName) {
+        return this.<RealValue>getAttributeAux(objstate, attributeName).value();
+    }
+
+    /**
+     * Returns the value of a string attribute in the model.
+     * @param objstate The state of the object whose attribute to retrieve.
+     * @param attributeName The name of the attribute to retrieve.
+     * @return The value of the attribute.
+     * @throws ClassCastException If the attribute's type is not a string.
+     */
+    public String getStringAttribute(MObjectState objstate, String attributeName) {
+        return this.<StringValue>getAttributeAux(objstate, attributeName).value();
+    }
+
+    /**
+     * Returns the value of a boolean attribute in the model.
+     * @param objstate The state of the object whose attribute to retrieve.
+     * @param attributeName The name of the attribute to retrieve.
+     * @return The value of the attribute.
+     * @throws ClassCastException If the attribute's type is not a boolean value.
+     */
+    public boolean getBooleanAttribute(MObjectState objstate, String attributeName) {
+        return this.<BooleanValue>getAttributeAux(objstate, attributeName).value();
+    }
+
+    /**
+     * Returns the value of any attribute as a string.
+     * @param objstate The state of the object whose attribute to retrieve.
+     * @param attributeName The name of the attribute to retrieve.
+     * @return The value of the attribute.
+     */
+    public String getAttributeAsString(MObjectState objstate, String attributeName) {
+        return objstate.attributeValue(attributeName).toString();
+    }
+
+    /**
+     * Sets the value of attribute <i>attributeName</i>.
+     * @param objstate The object whose attribute to set.
+     * @param attributeName The name of the attribute to set.
+     * @param value The value to set.
+     */
+    public void setAttribute(MObjectState objstate, String attributeName, int value) {
+        setAttributeAux(objstate, attributeName, IntegerValue.valueOf(value));
+    }
+
+    /**
+     * Sets the value of attribute <i>attributeName</i>.
+     * @param objstate The object whose attribute to set.
+     * @param attributeName The name of the attribute to set.
+     * @param value The value to set.
+     */
+    public void setAttribute(MObjectState objstate, String attributeName, double value) {
+        setAttributeAux(objstate, attributeName, new RealValue(value));
+    }
+
+    /**
+     * Sets the value of attribute <i>attributeName</i>.
+     * @param objstate The object whose attribute to set.
+     * @param attributeName The name of the attribute to set.
+     * @param value The value to set.
+     */
     public void setAttribute(MObjectState objstate, String attributeName, String value) {
         setAttributeAux(objstate, attributeName, new StringValue(value));
     }
+
+    /**
+     * Sets the value of attribute <i>attributeName</i>.
+     * @param objstate The object whose attribute to set.
+     * @param attributeName The name of the attribute to set.
+     * @param value The value to set.
+     */
     public void setAttribute(MObjectState objstate, String attributeName, boolean value) {
         setAttributeAux(objstate, attributeName, BooleanValue.get(value));
     }
 
+    @SuppressWarnings("unchecked")
+    private <T extends Value> T getAttributeAux(MObjectState objstate, String attributeName) {
+        return (T) objstate.attributeValue(attributeName);
+    }
     private void setAttributeAux(MObjectState objstate, String attributeName, Value value) {
         MClass objClass = objstate.object().cls();
         MAttribute attribute = objClass.attribute(attributeName, true);

@@ -5,8 +5,6 @@ import digital.twin.OutputSnapshotsManager;
 import org.tzi.use.api.UseSystemApi;
 import org.tzi.use.runtime.gui.IPluginAction;
 import org.tzi.use.runtime.gui.IPluginActionDelegate;
-import org.tzi.use.uml.mm.MAttribute;
-import org.tzi.use.uml.ocl.value.StringValue;
 import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
 import pubsub.OutPubService;

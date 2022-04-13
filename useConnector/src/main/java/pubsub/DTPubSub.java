@@ -2,7 +2,6 @@ package pubsub;
 
 import digital.twin.CommandsManager;
 import digital.twin.OutputSnapshotsManager;
-import org.tzi.use.api.UseApiException;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPubSub;
 import utils.DTLogger;
@@ -44,16 +43,18 @@ public class DTPubSub extends JedisPubSub {
                 try {
                     this.dtOutSnapshotsManager.saveObjectsToDataLake(jedis);
                     DTLogger.info("New Output Snapshots saved");
-                } catch (UseApiException ex) {
+                } catch (Exception ex) {
+                    DTLogger.error("An error ocurred:");
                     ex.printStackTrace();
                 }
                 break;
 
-            case COMMAND_OUT_CHANNEL: // Commands sent to the DT system
+            case COMMAND_OUT_CHANNEL: // Command results leaving USE
                 try {
                     this.commandsManager.saveObjectsToDataLake(jedis);
-                    DTLogger.info("New Commands saved");
-                } catch (UseApiException ex) {
+                    DTLogger.info("New Command Results saved");
+                } catch (Exception ex) {
+                    DTLogger.error("An error ocurred:");
                     ex.printStackTrace();
                 }
                 break;
