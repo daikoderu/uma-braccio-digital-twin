@@ -11,12 +11,14 @@ import java.util.List;
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
  * OutputManager that retrieves all Command instances and serializes them for storage in the data lake.
  */
-public class CommandsManager extends OutputManager {
+public class CommandResultManager extends OutputManager {
 
-    public CommandsManager(DTUseFacade useApi) {
-        super(useApi, DTPubSub.COMMAND_OUT_CHANNEL, "Command", "DTCommand");
-        attributeSpecification.set("action", AttributeType.STRING);
-        attributeSpecification.set("arguments", AttributeType.STRING);
+    public CommandResultManager(DTUseFacade useApi) {
+        super(useApi, DTPubSub.COMMAND_OUT_CHANNEL, "CommandResult", "DTCommandResult");
+        attributeSpecification.set("command.name", AttributeType.STRING);
+        attributeSpecification.set("command.arguments", AttributeType.STRING);
+        attributeSpecification.set("command.timestamp", AttributeType.NUMBER);
+        attributeSpecification.set("return", AttributeType.STRING);
     }
 
     /**

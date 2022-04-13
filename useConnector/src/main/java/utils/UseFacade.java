@@ -6,6 +6,7 @@ import org.tzi.use.uml.mm.MClass;
 import org.tzi.use.uml.ocl.value.*;
 import org.tzi.use.uml.sys.MObject;
 import org.tzi.use.uml.sys.MObjectState;
+import org.tzi.use.uml.sys.MSystemState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,9 +64,13 @@ public class UseFacade {
     /**
      * Returns the value of an integer attribute in the model.
      * @param objstate The state of the object whose attribute to retrieve.
-     * @param attributeName The name of the attribute to retrieve.
+     * @param attributeName The name of the attribute to retrieve. If this name contains dots,
+     *      it is interpreted as a path through the model starting in <i>objstate</i>
+     *      and traversing the specified associations.
      * @return The value of the attribute.
      * @throws ClassCastException If the attribute's type is not an integer.
+     * @throws IllegalArgumentException If <i>attributeName</i> is an association path and one of the
+     *      association ends could not be found.
      */
     public int getIntegerAttribute(MObjectState objstate, String attributeName) {
         return this.<IntegerValue>getAttributeAux(objstate, attributeName).value();
@@ -74,9 +79,13 @@ public class UseFacade {
     /**
      * Returns the value of a real number attribute in the model.
      * @param objstate The state of the object whose attribute to retrieve.
-     * @param attributeName The name of the attribute to retrieve.
+     * @param attributeName The name of the attribute to retrieve. If this name contains dots,
+     *      it is interpreted as a path through the model starting in <i>objstate</i>
+     *      and traversing the specified associations.
      * @return The value of the attribute.
      * @throws ClassCastException If the attribute's type is not a real number.
+     * @throws IllegalArgumentException If <i>attributeName</i> is an association path and one of the
+     *      association ends could not be found.
      */
     public double getRealAttribute(MObjectState objstate, String attributeName) {
         return this.<RealValue>getAttributeAux(objstate, attributeName).value();
@@ -85,9 +94,13 @@ public class UseFacade {
     /**
      * Returns the value of a string attribute in the model.
      * @param objstate The state of the object whose attribute to retrieve.
-     * @param attributeName The name of the attribute to retrieve.
+     * @param attributeName The name of the attribute to retrieve. If this name contains dots,
+     *      it is interpreted as a path through the model starting in <i>objstate</i>
+     *      and traversing the specified associations.
      * @return The value of the attribute.
      * @throws ClassCastException If the attribute's type is not a string.
+     * @throws IllegalArgumentException If <i>attributeName</i> is an association path and one of the
+     *      association ends could not be found.
      */
     public String getStringAttribute(MObjectState objstate, String attributeName) {
         return this.<StringValue>getAttributeAux(objstate, attributeName).value();
@@ -96,9 +109,13 @@ public class UseFacade {
     /**
      * Returns the value of a boolean attribute in the model.
      * @param objstate The state of the object whose attribute to retrieve.
-     * @param attributeName The name of the attribute to retrieve.
+     * @param attributeName The name of the attribute to retrieve. If this name contains dots,
+     *      it is interpreted as a path through the model starting in <i>objstate</i>
+     *      and traversing the specified associations.
      * @return The value of the attribute.
      * @throws ClassCastException If the attribute's type is not a boolean value.
+     * @throws IllegalArgumentException If <i>attributeName</i> is an association path and one of the
+     *      association ends could not be found.
      */
     public boolean getBooleanAttribute(MObjectState objstate, String attributeName) {
         return this.<BooleanValue>getAttributeAux(objstate, attributeName).value();
@@ -107,8 +124,12 @@ public class UseFacade {
     /**
      * Returns the value of any attribute as a string.
      * @param objstate The state of the object whose attribute to retrieve.
-     * @param attributeName The name of the attribute to retrieve.
+     * @param attributeName The name of the attribute to retrieve. If this name contains dots,
+     *      it is interpreted as a path through the model starting in <i>objstate</i>
+     *      and traversing the specified associations.
      * @return The value of the attribute.
+     * @throws IllegalArgumentException If <i>attributeName</i> is an association path and one of the
+     *      association ends could not be found.
      */
     public String getAttributeAsString(MObjectState objstate, String attributeName) {
         return objstate.attributeValue(attributeName).toString();
@@ -156,7 +177,18 @@ public class UseFacade {
 
     @SuppressWarnings("unchecked")
     private <T extends Value> T getAttributeAux(MObjectState objstate, String attributeName) {
-        return (T) objstate.attributeValue(attributeName);
+        MSystemState state = api.getSystem().state();
+        String[] attrTokens = attributeName.split("\\.");
+        for (int i = 0; i < attrTokens.length - 1; i++) {
+            String token = attrTokens[i];
+            Value value = objstate.attributeValue(token);
+            if (value instanceof ObjectValue) {
+                objstate = ((ObjectValue) value).value().state(state);
+            } else {
+                throw new IllegalArgumentException("could not find attribute " + attributeName);
+            }
+        }
+        return (T) objstate.attributeValue(attrTokens[attrTokens.length - 1]);
     }
     private void setAttributeAux(MObjectState objstate, String attributeName, Value value) {
         MClass objClass = objstate.object().cls();

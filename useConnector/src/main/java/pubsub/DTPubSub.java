@@ -1,6 +1,6 @@
 package pubsub;
 
-import digital.twin.CommandsManager;
+import digital.twin.CommandResultManager;
 import digital.twin.DTUseFacade;
 import digital.twin.OutputSnapshotsManager;
 import redis.clients.jedis.Jedis;
@@ -17,7 +17,7 @@ public class DTPubSub extends JedisPubSub {
     public static final String COMMAND_OUT_CHANNEL = "CommandOutChannel";
     private final Jedis jedis;
     private final OutputSnapshotsManager dtOutSnapshotsManager;
-    private final CommandsManager commandsManager;
+    private final CommandResultManager commandResultManager;
 
     /**
      * Default constructor.
@@ -27,7 +27,7 @@ public class DTPubSub extends JedisPubSub {
     public DTPubSub(DTUseFacade useApi, Jedis jedis) {
         this.jedis = jedis;
         dtOutSnapshotsManager = new OutputSnapshotsManager(useApi);
-        commandsManager = new CommandsManager(useApi);
+        commandResultManager = new CommandResultManager(useApi);
     }
 
     /**
@@ -51,7 +51,7 @@ public class DTPubSub extends JedisPubSub {
 
             case COMMAND_OUT_CHANNEL: // Command results leaving USE
                 try {
-                    commandsManager.saveObjectsToDataLake(jedis);
+                    commandResultManager.saveObjectsToDataLake(jedis);
                     DTLogger.info("New Command Results saved");
                 } catch (Exception ex) {
                     DTLogger.error("An error ocurred:");

@@ -1,6 +1,6 @@
 package plugin;
 
-import digital.twin.CommandsManager;
+import digital.twin.CommandResultManager;
 import digital.twin.DTUseFacade;
 import digital.twin.OutputSnapshotsManager;
 import org.tzi.use.api.UseSystemApi;
@@ -71,7 +71,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
             outPublisher = new OutPubService(DTPubSub.DT_OUT_CHANNEL, jedisPool,
                     SLEEP_TIME_MS, new OutputSnapshotsManager(useApi));
             commandOutPublisher = new OutPubService(DTPubSub.COMMAND_OUT_CHANNEL, jedisPool,
-                    SLEEP_TIME_MS, new CommandsManager(useApi));
+                    SLEEP_TIME_MS, new CommandResultManager(useApi));
             ensureThreadPool();
             executor.submit(outPublisher);
             executor.submit(commandOutPublisher);
