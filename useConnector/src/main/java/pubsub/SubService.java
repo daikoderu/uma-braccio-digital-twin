@@ -1,9 +1,9 @@
 package pubsub;
 
+import digital.twin.DTUseFacade;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import utils.DTLogger;
-import utils.UseFacade;
 
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
@@ -11,7 +11,7 @@ import utils.UseFacade;
  */
 public class SubService implements Runnable {
 	
-	private final UseFacade useApi;
+	private final DTUseFacade useApi;
 	private final JedisPool jedisPool;
 	private final String subscribedChannel;
 	
@@ -22,7 +22,7 @@ public class SubService implements Runnable {
 	 * @param jedisPool	Jedis client pool, connected to the Data Lake
 	 * @param subscribedChannel	Channel you want to subscribe to
 	 */
-	public SubService(UseFacade useApi, JedisPool jedisPool, String subscribedChannel) {
+	public SubService(DTUseFacade useApi, JedisPool jedisPool, String subscribedChannel) {
 		this.useApi = useApi;
 		this.jedisPool = jedisPool;
 		this.subscribedChannel = subscribedChannel;

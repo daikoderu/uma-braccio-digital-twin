@@ -4,7 +4,6 @@ import digital.twin.attributes.AttributeType;
 import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
 import redis.clients.jedis.Jedis;
-import utils.UseFacade;
 
 import java.util.List;
 
@@ -20,7 +19,7 @@ public class OutputSnapshotsManager extends OutputManager {
      * Default constructor.
      * @param useApi USE API facade instance to interact with the currently displayed object diagram.
      */
-    public OutputSnapshotsManager(UseFacade useApi) {
+    public OutputSnapshotsManager(DTUseFacade useApi) {
         super(useApi, DTPubSub.DT_OUT_CHANNEL, "OutputBraccioSnapshot", "DTOutputSnapshot");
         attributeSpecification.set("currentAngles", AttributeType.NUMBER, NUMBER_OF_SERVOS);
         attributeSpecification.set("targetAngles", AttributeType.NUMBER, NUMBER_OF_SERVOS);

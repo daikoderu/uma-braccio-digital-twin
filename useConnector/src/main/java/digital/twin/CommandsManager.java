@@ -4,7 +4,6 @@ import digital.twin.attributes.AttributeType;
 import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
 import redis.clients.jedis.Jedis;
-import utils.UseFacade;
 
 import java.util.List;
 
@@ -14,7 +13,7 @@ import java.util.List;
  */
 public class CommandsManager extends OutputManager {
 
-    public CommandsManager(UseFacade useApi) {
+    public CommandsManager(DTUseFacade useApi) {
         super(useApi, DTPubSub.COMMAND_OUT_CHANNEL, "Command", "DTCommand");
         attributeSpecification.set("action", AttributeType.STRING);
         attributeSpecification.set("arguments", AttributeType.STRING);

@@ -6,7 +6,6 @@ import org.tzi.use.uml.sys.MObjectState;
 import redis.clients.jedis.Jedis;
 import utils.DTLogger;
 import utils.StringUtils;
-import utils.UseFacade;
 
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +21,7 @@ public abstract class OutputManager {
     protected static final String IS_PROCESSED = "isProcessed";
 
     protected final AttributeSpecification attributeSpecification;
-    protected final UseFacade useApi;
+    protected final DTUseFacade useApi;
     private final String channel;
     private final String retrievedClass;
     private final String objectIdPrefix;
@@ -35,7 +34,7 @@ public abstract class OutputManager {
      * @param retrievedClass The class whose instances to retrieve and serialize.
      * @param objectIdPrefix A prefix to be appended to the identifiers of all serialized instances.
      */
-    public OutputManager(UseFacade useApi, String channel, String retrievedClass, String objectIdPrefix) {
+    public OutputManager(DTUseFacade useApi, String channel, String retrievedClass, String objectIdPrefix) {
         attributeSpecification = new AttributeSpecification();
         attributeSpecification.set("twinId", AttributeType.STRING);
         attributeSpecification.set("executionId", AttributeType.STRING);

@@ -1,11 +1,11 @@
 package pubsub;
 
 import digital.twin.CommandsManager;
+import digital.twin.DTUseFacade;
 import digital.twin.OutputSnapshotsManager;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPubSub;
 import utils.DTLogger;
-import utils.UseFacade;
 
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
@@ -24,7 +24,7 @@ public class DTPubSub extends JedisPubSub {
      * @param useApi USE API facade instance to interact with the currently displayed object diagram
      * @param jedis An instance of the Jedis client to access the data lake.
      */
-    public DTPubSub(UseFacade useApi, Jedis jedis) {
+    public DTPubSub(DTUseFacade useApi, Jedis jedis) {
         this.jedis = jedis;
         dtOutSnapshotsManager = new OutputSnapshotsManager(useApi);
         commandsManager = new CommandsManager(useApi);
@@ -41,7 +41,7 @@ public class DTPubSub extends JedisPubSub {
 
             case DT_OUT_CHANNEL: // Info leaving USE
                 try {
-                    this.dtOutSnapshotsManager.saveObjectsToDataLake(jedis);
+                    dtOutSnapshotsManager.saveObjectsToDataLake(jedis);
                     DTLogger.info("New Output Snapshots saved");
                 } catch (Exception ex) {
                     DTLogger.error("An error ocurred:");
@@ -51,7 +51,7 @@ public class DTPubSub extends JedisPubSub {
 
             case COMMAND_OUT_CHANNEL: // Command results leaving USE
                 try {
-                    this.commandsManager.saveObjectsToDataLake(jedis);
+                    commandsManager.saveObjectsToDataLake(jedis);
                     DTLogger.info("New Command Results saved");
                 } catch (Exception ex) {
                     DTLogger.error("An error ocurred:");

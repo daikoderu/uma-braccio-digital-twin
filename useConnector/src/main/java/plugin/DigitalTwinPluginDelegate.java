@@ -1,11 +1,11 @@
 package plugin;
 
 import digital.twin.CommandsManager;
+import digital.twin.DTUseFacade;
 import digital.twin.OutputSnapshotsManager;
 import org.tzi.use.api.UseSystemApi;
 import org.tzi.use.runtime.gui.IPluginAction;
 import org.tzi.use.runtime.gui.IPluginActionDelegate;
-import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
 import pubsub.OutPubService;
 import pubsub.SubService;
@@ -13,7 +13,6 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import utils.DTLogger;
-import utils.UseFacade;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,15 +27,12 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     private static final String REDIS_HOSTNAME = "localhost";
     private static final int SLEEP_TIME_MS = 5000;
 
-    private static final String ROBOT_CLASSNAME = "BraccioRobot";
-    private static final String EXECUTION_ID_ATTRIBUTE = "executionId";
-
     private JedisPool jedisPool;
     private ExecutorService executor;
     private boolean connectionIsActive;
     private OutPubService outPublisher;
     private OutPubService commandOutPublisher;
-    private UseFacade useApi;
+    private DTUseFacade useApi;
 
     /**
      * Default constructor
@@ -110,7 +106,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
      */
     private void setApi(IPluginAction pluginAction) {
         UseSystemApi api = UseSystemApi.create(pluginAction.getSession());
-        useApi = new UseFacade(api);
+        useApi = new DTUseFacade(api);
     }
 
     /**
@@ -145,12 +141,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
      * Initializes the USE model.
      */
     private void initializeModel() {
-        String posixTime = System.currentTimeMillis() + "";
-
-        // Initialize execution IDs of all robots
-        for (MObjectState clock : useApi.getObjectsOfClass(ROBOT_CLASSNAME)) {
-            useApi.setAttribute(clock, EXECUTION_ID_ATTRIBUTE, posixTime);
-        }
+        useApi.setExecutionIds();
     }
 
 }

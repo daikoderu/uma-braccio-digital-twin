@@ -16,14 +16,14 @@ import java.util.List;
  */
 public class UseFacade {
 
-    private static UseSystemApi api;
+    private final UseSystemApi api;
 
     /**
-     * Sets the API instance to use for all subsequent calls to USEUtils methods.
+     * Sets the API instance to use for all subsequent calls to UseFacade methods.
      * @param api The USE API instance to interact with the currently displayed object diagram.
      */
     public UseFacade(UseSystemApi api) {
-        UseFacade.api = api;
+        this.api = api;
     }
 
     /**
@@ -38,6 +38,23 @@ public class UseFacade {
             if (o.cls().allSupertypes().contains(mclass)) {
                 MObjectState ostate = o.state(api.getSystem().state());
                 result.add(ostate);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Returns any object of a specific class in the USE model.
+     * @param className The name of the class whose instance to retrieve.
+     * @return An instance of the given class, or null if no instances are found.
+     */
+    public MObjectState getAnyObjectOfClass(String className) {
+        MObjectState result = null;
+        MClass mclass = api.getSystem().model().getClass(className);
+        for (MObject o : api.getSystem().state().allObjects()) {
+            if (o.cls().allSupertypes().contains(mclass)) {
+                result = (o.state(api.getSystem().state()));
+                break;
             }
         }
         return result;
