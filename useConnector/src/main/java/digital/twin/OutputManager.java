@@ -19,6 +19,7 @@ public abstract class OutputManager {
 
     protected static final String SNAPSHOT_ID = "snapshotId";
     protected static final String IS_PROCESSED = "isProcessed";
+    protected static final String WHEN_PROCESSED = "whenProcessed";
 
     protected final AttributeSpecification attributeSpecification;
     protected final DTUseFacade useApi;
@@ -114,7 +115,9 @@ public abstract class OutputManager {
         // Get object ID without timestamp, [objectIdPrefix]:[twinId]:[executionId]
         String objectIdNoStamp = objectId.substring(0, objectId.lastIndexOf(":"));
 
-        DTLogger.info(getChannel(), "---");
+        DTLogger.info(getChannel(), "------------");
+        DTLogger.info(getChannel(), "Saving output object: " + objectId);
+        DTLogger.info(getChannel(), "------------");
         for (String attr : attributeSpecification.attributeNames()) {
 
             AttributeType attrType = attributeSpecification.typeOf(attr);
@@ -144,17 +147,15 @@ public abstract class OutputManager {
                 DTLogger.warn(getChannel(), "Attribute " + attr + " not found in class " + retrievedClass);
             }
         }
+        DTLogger.info(getChannel(), "------------");
 
         // Save the object
-        DTLogger.info(getChannel(), "Saved snapshot: " + objectId);
-        DTLogger.info(getChannel(), "---");
         jedis.hset(objectId, armValues);
+        jedis.zadd(objectIdPrefix, 0, objectId);
 
         // Mark object as processed
         useApi.setAttribute(snapshot, IS_PROCESSED, true);
-
-        // Add to a set with references to all saved instances
-        jedis.zadd(objectIdPrefix, 0, objectId);
+        useApi.setAttribute(snapshot, WHEN_PROCESSED, useApi.getCurrentTime());
     }
 
     /**

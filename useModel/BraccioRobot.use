@@ -177,6 +177,7 @@ class BraccioRobot
         twinId : String
             init: 'MyBraccioArm'
         executionId : String
+            init: '0'
 
         -- Minimum and maximum values for each servo
         minServoAngles : Sequence(Integer)
