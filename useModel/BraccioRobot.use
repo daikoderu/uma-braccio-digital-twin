@@ -242,7 +242,6 @@ class BraccioRobot
         post minTimeOk: result >= minTime
 
         -- Moves the robot to a target position in at least minTime seconds
-        -- and returns the actual time to complete the move
         moveToPosition(position : Sequence(Integer), minTime : Real)
         begin
             declare displacements : Sequence(Real), duration : Real;
