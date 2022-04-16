@@ -94,7 +94,7 @@ end
 constraints
 
     context Processable inv processedAfterCreated:
-        self.whenProcessed >= self.timestamp
+        self.isProcessed implies self.whenProcessed >= self.timestamp
 
 
 -- ----------------------------------------------------------------------------
@@ -416,7 +416,11 @@ abstract class Command < Processable
         getName() : String
             = null
 
-        execute(robot : BraccioRobot, now : Integer) : String
+        beforeExecute(robot : BraccioRobot, args : Sequence(String), now : Integer) : String
+        begin
+        end
+
+        execute(robot : BraccioRobot, args : Sequence(String), now : Integer) : String
         begin
         end
 
@@ -434,22 +438,35 @@ association CommandReturn between
     CommandResult[0..1] role result
 end
 
-class GoToUprightPositionCommand < Command
+class MoveToPositionCommand < Command
 
+    attributes
+        parsedPosition : Sequence(Integer)
+    
     operations
 
         getName() : String
-            = 'upright'
+            = 'moveto'
 
-        execute(robot : BraccioRobot, now : Integer) : String
+        beforeExecute(robot : BraccioRobot, args : Sequence(String), now : Integer) : String
         begin
-            declare uprightPosition : Sequence(Integer);
-            uprightPosition := Sequence{90,90,90,90,90,73};
-            for i in Sequence{1..6} do
-                robot.servo->at(i).targetAngle := uprightPosition->at(i);
-                robot.servo->at(i).currentSpeed := robot.servo->at(i).maxSpeed
+            self.parsedPosition := args.toInteger();
+            if self.parsedPosition->size() = 6 and not self.parsedPosition->exists(x | x = null)
+            and robot.isValidPosition(self.parsedPosition) then
+                robot.moveToPosition(self.parsedPosition, 0);
+                result := null;
+            else
+                result := 'error'
             end;
-            result := 'ok'
+        end
+
+        execute(robot : BraccioRobot, args : Sequence(String), now : Integer) : String
+        begin
+            if robot.readAllServos() = self.parsedPosition then
+                result := 'ok'
+            else
+                result := null
+            end;
         end
 
 end
@@ -460,30 +477,47 @@ class CommandMonitor < RobotMonitor
         busy : Boolean
             derive: self.currentCommand <> null
 
+        currentArgs : Sequence(String)
+
     operations
         periodicAction()
         begin
+            declare return : String;
             if self.busy then
-                declare return : String;
-                return := self.currentCommand.execute(self.robot, self.clock.now);
+                return := self.currentCommand.execute(self.robot, self.currentArgs, self.clock.now);
                 if return <> null then
+                    -- Command end
+                    self.markCommandAsProcessed(self.currentCommand, self.clock.now, return);
                     delete (self, self.currentCommand) from CommandExecution;
-                    self.makeResponse(self.currentCommand, self.clock.now, return);
-                end
+                end;
             else
-                declare c : Command;
-                if c <> null then
-                    insert (self, c) into CommandExecution;
-                end
+                -- Find the next command
+                declare nextCommand : Command;
+                nextCommand := Command.allInstances()
+                    ->select(c | self.robot.twinId = c.twinId and self.robot.executionId = c.executionId
+                        and not c.isProcessed)
+                    ->sortedBy(c | c.timestamp)->first();
+                if nextCommand <> null then
+                    -- Command start
+                    self.currentArgs := nextCommand.arguments.split(' ').reject(s | s.size() = 0);
+                    return := nextCommand.beforeExecute(self.robot, self.currentArgs, self.clock.now);
+                    if return = null then
+                        insert (self, nextCommand) into CommandExecution;
+                    else
+                        self.markCommandAsProcessed(nextCommand, self.clock.now, return);
+                    end;
+                end;
             end;
         end
 
-        makeResponse(command : Command, now : Integer, return : String) : CommandResult
+        markCommandAsProcessed(command : Command, now : Integer, return : String) : CommandResult
         begin
             result := new CommandResult;
             insert (command, result) into CommandReturn;
             result.return := return;
-            result.timestamp := now;
+            result.timestamp := now; 
+            command.isProcessed := true;
+            command.whenProcessed := now;
         end
 
 end
