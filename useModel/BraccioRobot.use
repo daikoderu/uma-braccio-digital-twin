@@ -261,7 +261,6 @@ class BraccioRobot
         end
         pre validPosition: isValidPosition(position)
         pre validTime: minTime >= 0
-        pre notMoving: not self.moving
         post targetAngleSet: Sequence{1..6}->forAll(i | self.servo->at(i).targetAngle = position->at(i))
 
 
