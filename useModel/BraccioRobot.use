@@ -414,7 +414,7 @@ abstract class Command < Processable
         getName() : String
             = null
 
-        beforeExecute(robot : BraccioRobot, args : Sequence(String), now : Integer) : String
+        executeImmediately(robot : BraccioRobot, args : Sequence(String), now : Integer) : String
         begin
         end
 
@@ -446,7 +446,7 @@ class MoveToPositionCommand < Command
         getName() : String
             = 'moveto'
 
-        beforeExecute(robot : BraccioRobot, args : Sequence(String), now : Integer) : String
+        executeImmediately(robot : BraccioRobot, args : Sequence(String), now : Integer) : String
         begin
             self.parsedPosition := args.toInteger();
             if self.parsedPosition->size() = 6 and not self.parsedPosition->exists(x | x = null)
@@ -498,7 +498,7 @@ class CommandMonitor < RobotMonitor
                 if nextCommand <> null then
                     -- Command start
                     self.currentArgs := nextCommand.arguments.split(' ').reject(s | s.size() = 0);
-                    return := nextCommand.beforeExecute(self.robot, self.currentArgs, self.clock.now);
+                    return := nextCommand.executeImmediately(self.robot, self.currentArgs, self.clock.now);
                     if return = null then
                         insert (self, nextCommand) into CommandExecution;
                     else
@@ -523,4 +523,34 @@ end
 association CommandExecution between
     CommandMonitor[0..1] role executor
     Command[0..1] role currentCommand
+end
+
+class CommandGenerator < ActiveObject
+
+    operations
+        createCommand(name : String, args : String) : Command
+        begin
+            result := self.commandNameToInstance(name);
+            if result <> null then
+                result.twinId := self.robot.twinId;
+                result.executionId := self.robot.executionId;
+                result.timestamp := self.clock.now;
+                result.arguments := args;
+            end;
+        end
+
+        commandNameToInstance(name : String) : Command
+        begin
+            if name = 'moveto' then
+                result := new MoveToPositionCommand
+            else
+                result := null
+            end;
+        end
+
+end
+
+association CommandGeneration between
+    CommandGenerator[0..*] role generators
+    BraccioRobot[1] role robot
 end
