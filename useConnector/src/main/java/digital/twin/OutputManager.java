@@ -39,7 +39,7 @@ public abstract class OutputManager {
         attributeSpecification = new AttributeSpecification();
         attributeSpecification.set("twinId", AttributeType.STRING);
         attributeSpecification.set("executionId", AttributeType.STRING);
-        attributeSpecification.set("timestamp", AttributeType.NUMBER);
+        attributeSpecification.set("timestamp", AttributeType.INTEGER);
         this.useApi = useApi;
         this.channel = channel;
         this.retrievedClass = retrievedClass;
@@ -65,38 +65,13 @@ public abstract class OutputManager {
     }
 
     /**
-     * Saves all objects to the data lake.
+     * Saves all the objects in the currently displayed object diagram to the data lake.
      * @param jedis An instance of the Jedis client to access the data lake.
      */
-    public abstract void saveObjectsToDataLake(Jedis jedis);
-
-    /**
-     * Adds a search register to the database to maintain a list of all states of an object for a digital twin
-     * and an execution id.
-     * @param jedis An instance of the Jedis client to access the data lake.
-     * @param twinIdExecutionId The twin ID and execution ID of the object: "[objectIdPrefix]:[twinId]:[executionId]".
-     * @param attributeName The name of the attribute to save.
-     * @param type The type of the attribute to save.
-     * @param value The value to save, as a USE value.
-     * @param objectId The key of the object to be able to be retrieved.
-     */
-    protected void addSearchRegister(
-            Jedis jedis, String twinIdExecutionId, String attributeName,
-            AttributeType type, String value, String objectId) {
-        String key = twinIdExecutionId + ":" + attributeName.toUpperCase() + "_LIST";
-        double score;
-        switch (type) {
-
-            case NUMBER:
-                score = Double.parseDouble(value.replace("'", ""));
-                jedis.zadd(key, score, objectId);
-                break;
-
-            case BOOLEAN:
-                score = Boolean.parseBoolean(value) ? 1 : 0;
-                jedis.zadd(key, score, objectId);
-                break;
-
+    public void saveObjectsToDataLake(Jedis jedis) {
+        List<MObjectState> unprocessedCommands = getUnprocessedModelObjects();
+        for (MObjectState command : unprocessedCommands) {
+            saveOneObject(jedis, command);
         }
     }
 
@@ -105,7 +80,7 @@ public abstract class OutputManager {
      * @param jedis An instance of the Jedis client to access the data lake.
      * @param snapshot The object to store.
      */
-    protected void saveOneObject(Jedis jedis, MObjectState snapshot) {
+    private void saveOneObject(Jedis jedis, MObjectState snapshot) {
         Map<String, String> armValues = new HashMap<>();
 
         // Generate the object identifier
@@ -159,6 +134,37 @@ public abstract class OutputManager {
     }
 
     /**
+     * Adds a search register to the database to maintain a list of all states of an object for a digital twin
+     * and an execution id.
+     * @param jedis An instance of the Jedis client to access the data lake.
+     * @param twinIdExecutionId The twin ID and execution ID of the object: "[objectIdPrefix]:[twinId]:[executionId]".
+     * @param attributeName The name of the attribute to save.
+     * @param type The type of the attribute to save.
+     * @param value The value to save, as a USE value.
+     * @param objectId The key of the object to be able to be retrieved.
+     */
+    protected void addSearchRegister(
+            Jedis jedis, String twinIdExecutionId, String attributeName,
+            AttributeType type, String value, String objectId) {
+        String key = twinIdExecutionId + ":" + attributeName.toUpperCase() + "_LIST";
+        double score;
+        switch (type) {
+
+            case INTEGER:
+            case REAL:
+                score = Double.parseDouble(value.replace("'", ""));
+                jedis.zadd(key, score, objectId);
+                break;
+
+            case BOOLEAN:
+                score = Boolean.parseBoolean(value) ? 1 : 0;
+                jedis.zadd(key, score, objectId);
+                break;
+
+        }
+    }
+
+    /**
      * Generates and returns an identifier for an object to be stored in the data lake.
      * @param objstate The object state to generate the identifier from.
      * @return The identifier for the object: "[objectIdPrefix]:[twinId]:[executionId]:[timestamp]".
@@ -178,6 +184,7 @@ public abstract class OutputManager {
     /**
      * Converts an USE collection value to an array of values.
      * @param collection The collection value to convert.
+     * @param baseType Type of each element in the collection.
      * @return An array of strings containing each value in the collection.
      */
     private String[] extractValuesFromCollection(String collection, AttributeType baseType) {

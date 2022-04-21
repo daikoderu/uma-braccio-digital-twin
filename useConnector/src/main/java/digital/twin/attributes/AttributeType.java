@@ -8,7 +8,7 @@ import utils.StringUtils;
  */
 public enum AttributeType {
 
-    BOOLEAN, NUMBER, STRING;
+    BOOLEAN, INTEGER, REAL, STRING;
 
     /**
      * Converts a USE value string to a string to be stored on a Redis data lake.
@@ -21,7 +21,8 @@ public enum AttributeType {
             case BOOLEAN:
                 return Boolean.parseBoolean(value) ? "1" : "0";
 
-            case NUMBER:
+            case INTEGER:
+            case REAL:
                 return value;
 
             case STRING:

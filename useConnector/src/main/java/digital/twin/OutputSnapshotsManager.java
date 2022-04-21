@@ -1,11 +1,7 @@
 package digital.twin;
 
 import digital.twin.attributes.AttributeType;
-import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
-import redis.clients.jedis.Jedis;
-
-import java.util.List;
 
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
@@ -21,21 +17,10 @@ public class OutputSnapshotsManager extends OutputManager {
      */
     public OutputSnapshotsManager(DTUseFacade useApi) {
         super(useApi, DTPubSub.DT_OUT_CHANNEL, "OutputBraccioSnapshot", "DTOutputSnapshot");
-        attributeSpecification.set("currentAngles", AttributeType.NUMBER, NUMBER_OF_SERVOS);
-        attributeSpecification.set("targetAngles", AttributeType.NUMBER, NUMBER_OF_SERVOS);
-        attributeSpecification.set("currentSpeeds", AttributeType.NUMBER, NUMBER_OF_SERVOS);
+        attributeSpecification.set("currentAngles", AttributeType.REAL, NUMBER_OF_SERVOS);
+        attributeSpecification.set("targetAngles", AttributeType.REAL, NUMBER_OF_SERVOS);
+        attributeSpecification.set("currentSpeeds", AttributeType.REAL, NUMBER_OF_SERVOS);
         attributeSpecification.set("moving", AttributeType.BOOLEAN);
-    }
-
-    /**
-     * Saves all the OutputBraccioSnapshot objects in the currently displayed object diagram in the data lake.
-     * @param jedis An instance of the Jedis client to access the data lake.
-     */
-    public void saveObjectsToDataLake(Jedis jedis) {
-        List<MObjectState> outputSnapshots = getUnprocessedModelObjects();
-        for (MObjectState snapshot : outputSnapshots) {
-            saveOneObject(jedis, snapshot);
-        }
     }
 
 }
