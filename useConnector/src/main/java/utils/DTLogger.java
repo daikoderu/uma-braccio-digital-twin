@@ -2,6 +2,8 @@ package utils;
 
 import pubsub.PubService;
 
+import java.io.PrintStream;
+
 /**
  * @author Daniel Pérez - University of Málaga
  * A collection of utility methods for printing text to the console.
@@ -13,7 +15,7 @@ public class DTLogger {
      * @param msg The message to print.
      */
     public static void info(String msg) {
-        System.out.println("[DT-INFO] " + msg);
+        log(System.out, "DT-INFO", msg);
     }
 
     /**
@@ -21,7 +23,7 @@ public class DTLogger {
      * @param msg The message to print.
      */
     public static void warn(String msg) {
-        System.err.println("[DT-WARN] " + msg);
+        log(System.err, "DT-WARN", msg);
     }
 
     /**
@@ -29,7 +31,15 @@ public class DTLogger {
      * @param msg The message to print.
      */
     public static void error(String msg) {
-        System.err.println("[DT-ERR] " + msg);
+        log(System.err, "DT-ERR", msg);
+    }
+
+    /**
+     * Prints an error message to the standard error output.
+     * @param msg The message to print.
+     */
+    public static void error(String msg, Exception exception) {
+        log(System.err, "DT-ERR", msg, exception);
     }
 
     /**
@@ -38,7 +48,7 @@ public class DTLogger {
      * @param msg The message to print.
      */
     public static void info(String tag, String msg) {
-        System.out.println("[DT-INFO:" + tag + "] " + msg);
+        log(System.out, "DT-INFO:" + tag, msg);
     }
 
     /**
@@ -47,7 +57,7 @@ public class DTLogger {
      * @param msg The message to print.
      */
     public static void warn(String tag, String msg) {
-        System.err.println("[DT-WARN:" + tag + "] " + msg);
+        log(System.err, "DT-WARN:" + tag, msg);
     }
 
     /**
@@ -56,7 +66,17 @@ public class DTLogger {
      * @param msg The message to print.
      */
     public static void info(PubService service, String msg) {
-        System.out.println("[" + service.getChannel() + "] " + msg);
+        log(System.out, service.getChannel(), msg);
+    }
+
+    private static void log(PrintStream stream, String tag, String msg) {
+        log(stream, tag, msg, null);
+    }
+    private static synchronized void log(PrintStream stream, String tag, String msg, Exception exception) {
+        stream.println("[" + tag + "] " + msg);
+        if (exception != null) {
+            exception.printStackTrace();
+        }
     }
 
 }

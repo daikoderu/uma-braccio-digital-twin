@@ -44,8 +44,7 @@ public class DTPubSub extends JedisPubSub {
                     dtOutSnapshotsManager.saveObjectsToDataLake(jedis);
                     DTLogger.info("New Output Snapshots saved");
                 } catch (Exception ex) {
-                    DTLogger.error("An error ocurred:");
-                    ex.printStackTrace();
+                    DTLogger.error("An error ocurred:", ex);
                 }
                 break;
 
@@ -54,8 +53,7 @@ public class DTPubSub extends JedisPubSub {
                     commandResultManager.saveObjectsToDataLake(jedis);
                     DTLogger.info("New Command Results saved");
                 } catch (Exception ex) {
-                    DTLogger.error("An error ocurred:");
-                    ex.printStackTrace();
+                    DTLogger.error("An error ocurred:", ex);
                 }
                 break;
 

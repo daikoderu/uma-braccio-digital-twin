@@ -36,8 +36,7 @@ public class SubService implements Runnable {
         try (Jedis jedisSubscriber = jedisPool.getResource(); Jedis jedisCrud = jedisPool.getResource()) {
         	jedisSubscriber.subscribe(new DTPubSub(useApi, jedisCrud), subscribedChannel);
         } catch (Exception ex) {
-        	DTLogger.error("An error ocurred:");
-            ex.printStackTrace();
+        	DTLogger.error("An error ocurred:", ex);
         }    
     }
 

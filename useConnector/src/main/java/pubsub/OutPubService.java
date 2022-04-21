@@ -40,7 +40,7 @@ public class OutPubService extends PubService {
             try {
                 Thread.sleep(sleepTime);
             } catch (InterruptedException ex) {
-                ex.printStackTrace();
+                DTLogger.info(this, "Wait interrupted");
             }
             
             // Check for new snapshots
@@ -50,7 +50,7 @@ public class OutPubService extends PubService {
             		DTLogger.info(this, "New Information");
             	}
             } catch (Exception ex) {
-               ex.printStackTrace();
+               DTLogger.error("An error ocurred:", ex);
             }
         }
     }

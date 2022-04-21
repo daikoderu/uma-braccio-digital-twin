@@ -122,8 +122,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
             jedisPool.returnResource(jedis);
             return true;
         } catch (Exception ex) {
-            DTLogger.error("An error ocurred:");
-            ex.printStackTrace();
+            DTLogger.error("Data lake connection error:", ex);
             return false;
         }
     }
