@@ -358,14 +358,16 @@ abstract class BraccioSnapshot < Snapshot
 
     attributes
         twinId : String
-        currentAngles : Sequence(Real)
-        targetAngles : Sequence(Real)
-        currentSpeeds : Sequence(Real)
-        moving : Boolean
 
 end
 
 class OutputBraccioSnapshot < BraccioSnapshot
+
+    attributes
+        currentAngles : Sequence(Real)
+        targetAngles : Sequence(Real)
+        currentSpeeds : Sequence(Real)
+        moving : Boolean
 
     operations
         init(arm : BraccioRobot, now : Integer)
