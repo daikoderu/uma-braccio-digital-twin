@@ -5,11 +5,11 @@ import digital.twin.attributes.AttributeType;
 import org.tzi.use.uml.sys.MObjectState;
 import redis.clients.jedis.Jedis;
 import utils.DTLogger;
-import utils.StringUtils;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
@@ -20,12 +20,13 @@ public abstract class OutputManager {
     protected static final String SNAPSHOT_ID = "snapshotId";
     protected static final String IS_PROCESSED = "isProcessed";
     protected static final String WHEN_PROCESSED = "whenProcessed";
+    private static final ReentrantLock logMutex = new ReentrantLock();
 
     protected final AttributeSpecification attributeSpecification;
     protected final DTUseFacade useApi;
     private final String channel;
     private final String retrievedClass;
-    private final String objectIdPrefix;
+    private final String objectType;
 
     /**
      * Default constructor. Constructors from subclasses must set the type of the attributes to serialize
@@ -33,17 +34,16 @@ public abstract class OutputManager {
      * @param useApi USE API facade instance to interact with the currently displayed object diagram.
      * @param channel The channel this OutputManager is created from.
      * @param retrievedClass The class whose instances to retrieve and serialize.
-     * @param objectIdPrefix A prefix to be appended to the identifiers of all serialized instances.
+     * @param objectType A prefix to be appended to the identifiers of all serialized instances
+     *      to identify their type.
      */
-    public OutputManager(DTUseFacade useApi, String channel, String retrievedClass, String objectIdPrefix) {
+    public OutputManager(DTUseFacade useApi, String channel, String retrievedClass, String objectType) {
         attributeSpecification = new AttributeSpecification();
-        attributeSpecification.set("twinId", AttributeType.STRING);
-        attributeSpecification.set("executionId", AttributeType.STRING);
         attributeSpecification.set("timestamp", AttributeType.INTEGER);
         this.useApi = useApi;
         this.channel = channel;
         this.retrievedClass = retrievedClass;
-        this.objectIdPrefix = objectIdPrefix;
+        this.objectType = objectType;
     }
 
     /**
@@ -69,9 +69,15 @@ public abstract class OutputManager {
      * @param jedis An instance of the Jedis client to access the data lake.
      */
     public void saveObjectsToDataLake(Jedis jedis) {
+        useApi.updateDerivedValues();
         List<MObjectState> unprocessedCommands = getUnprocessedModelObjects();
         for (MObjectState command : unprocessedCommands) {
-            saveOneObject(jedis, command);
+            try {
+                logMutex.lock();
+                saveOneObject(jedis, command);
+            } finally {
+                logMutex.unlock();
+            }
         }
     }
 
@@ -84,22 +90,19 @@ public abstract class OutputManager {
         Map<String, String> armValues = new HashMap<>();
 
         // Generate the object identifier
-        String objectId = generateOutputObjectId(snapshot);
-        armValues.put(SNAPSHOT_ID, objectId);
+        String objectId = getObjectId(snapshot);
+        int timestamp = useApi.getIntegerAttribute(snapshot, "timestamp");
+        String objectTypeAndId = objectType + ":" + objectId;
+        String fullSnapshotId = objectTypeAndId + ":" + timestamp;
+        armValues.put(SNAPSHOT_ID, fullSnapshotId);
 
-        // Get object ID without timestamp, [objectIdPrefix]:[twinId]:[executionId]
-        String objectIdNoStamp = objectId.substring(0, objectId.lastIndexOf(":"));
-
-        DTLogger.info(getChannel(), "------------");
-        DTLogger.info(getChannel(), "Saving output object: " + objectId);
-        DTLogger.info(getChannel(), "------------");
+        DTLogger.info(getChannel(), "Saving output object: " + fullSnapshotId);
         for (String attr : attributeSpecification.attributeNames()) {
-
             AttributeType attrType = attributeSpecification.typeOf(attr);
             int multiplicity = attributeSpecification.multiplicityOf(attr);
             String attrValue = useApi.getAttributeAsString(snapshot, attr);
             if (attrValue != null) {
-                DTLogger.info(getChannel(), attr + ": " + attrValue);
+                DTLogger.info(getChannel(), "  " + attr + ": " + attrValue);
                 if (multiplicity > 1) {
                     // A sequence of values
                     String[] values = extractValuesFromCollection(attrValue, attrType);
@@ -107,46 +110,44 @@ public abstract class OutputManager {
                         for (int i = 1; i <= multiplicity; i++) {
                             String attrI = attr + "_" + i;
                             armValues.put(attrI, values[i - 1]);
-                            addSearchRegister(jedis, objectIdNoStamp, attrI, attrType, values[i - 1], objectId);
+                            addSearchRegister(jedis, objectTypeAndId, attrI, attrType, values[i - 1], fullSnapshotId);
                         }
                     } else {
-                        DTLogger.warn(getChannel(), "Attribute " + attr + " has " + values.length
+                        DTLogger.warn(getChannel(), "  Attribute " + attr + " has " + values.length
                                 + " value(s), but we need " + multiplicity);
                     }
                 } else {
                     // A single value
                     armValues.put(attr, attrType.toRedisString(attrValue));
-                    addSearchRegister(jedis, objectId, attr, attrType, attrValue, objectId);
+                    addSearchRegister(jedis, objectTypeAndId, attr, attrType, attrValue, fullSnapshotId);
                 }
             } else {
-                DTLogger.warn(getChannel(), "Attribute " + attr + " not found in class " + retrievedClass);
+                DTLogger.warn(getChannel(), "  Attribute " + attr + " not found in class " + retrievedClass);
             }
         }
-        DTLogger.info(getChannel(), "------------");
 
         // Save the object
-        jedis.hset(objectId, armValues);
-        jedis.zadd(objectIdPrefix, 0, objectId);
+        jedis.hset(fullSnapshotId, armValues);
 
         // Mark object as processed
+        jedis.zadd(objectType + "_PROCESSED", 0, fullSnapshotId);
         useApi.setAttribute(snapshot, IS_PROCESSED, true);
         useApi.setAttribute(snapshot, WHEN_PROCESSED, useApi.getCurrentTime());
     }
 
     /**
-     * Adds a search register to the database to maintain a list of all states of an object for a digital twin
-     * and an execution id.
+     * Adds a search register to the database to maintain a list of all states of an object.
      * @param jedis An instance of the Jedis client to access the data lake.
-     * @param twinIdExecutionId The twin ID and execution ID of the object: "[objectIdPrefix]:[twinId]:[executionId]".
+     * @param objectTypeAndId The ID of the object to generate the search register for.
      * @param attributeName The name of the attribute to save.
      * @param type The type of the attribute to save.
      * @param value The value to save, as a USE value.
      * @param objectId The key of the object to be able to be retrieved.
      */
     protected void addSearchRegister(
-            Jedis jedis, String twinIdExecutionId, String attributeName,
+            Jedis jedis, String objectTypeAndId, String attributeName,
             AttributeType type, String value, String objectId) {
-        String key = twinIdExecutionId + ":" + attributeName.toUpperCase() + "_LIST";
+        String key = objectTypeAndId + ":" + attributeName + "_HISTORY";
         double score;
         switch (type) {
 
@@ -167,19 +168,9 @@ public abstract class OutputManager {
     /**
      * Generates and returns an identifier for an object to be stored in the data lake.
      * @param objstate The object state to generate the identifier from.
-     * @return The identifier for the object: "[objectIdPrefix]:[twinId]:[executionId]:[timestamp]".
+     * @return The identifier for the object.
      */
-    private String generateOutputObjectId(MObjectState objstate) {
-        String twinId = useApi.getStringAttribute(objstate, "twinId");
-        String executionId = useApi.getStringAttribute(objstate, "executionId");
-        int timestamp = useApi.getIntegerAttribute(objstate, "timestamp");
-        assert twinId != null;
-        assert executionId != null;
-        return objectIdPrefix
-            + ":" + StringUtils.removeQuotes(twinId)
-            + ":" + StringUtils.removeQuotes(executionId)
-            + ":" + timestamp;
-    }
+    protected abstract String getObjectId(MObjectState objstate);
 
     /**
      * Converts an USE collection value to an array of values.

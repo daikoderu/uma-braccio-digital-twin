@@ -1,7 +1,9 @@
 package digital.twin;
 
 import digital.twin.attributes.AttributeType;
+import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
+import utils.StringUtils;
 
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
@@ -17,10 +19,20 @@ public class OutputSnapshotsManager extends OutputManager {
      */
     public OutputSnapshotsManager(DTUseFacade useApi) {
         super(useApi, DTPubSub.DT_OUT_CHANNEL, "OutputBraccioSnapshot", "DTOutputSnapshot");
+        attributeSpecification.set("twinId", AttributeType.STRING);
+        attributeSpecification.set("executionId", AttributeType.STRING);
         attributeSpecification.set("currentAngles", AttributeType.REAL, NUMBER_OF_SERVOS);
         attributeSpecification.set("targetAngles", AttributeType.REAL, NUMBER_OF_SERVOS);
         attributeSpecification.set("currentSpeeds", AttributeType.REAL, NUMBER_OF_SERVOS);
         attributeSpecification.set("moving", AttributeType.BOOLEAN);
+    }
+
+    protected String getObjectId(MObjectState objstate) {
+        String twinId = useApi.getStringAttribute(objstate, "twinId");
+        String executionId = useApi.getStringAttribute(objstate, "executionId");
+        assert twinId != null;
+        assert executionId != null;
+        return StringUtils.removeQuotes(twinId) + ":" + StringUtils.removeQuotes(executionId);
     }
 
 }

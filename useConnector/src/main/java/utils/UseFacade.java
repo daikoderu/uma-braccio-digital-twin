@@ -6,7 +6,6 @@ import org.tzi.use.uml.mm.MClass;
 import org.tzi.use.uml.ocl.value.*;
 import org.tzi.use.uml.sys.MObject;
 import org.tzi.use.uml.sys.MObjectState;
-import org.tzi.use.uml.sys.MSystemState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +25,13 @@ public class UseFacade {
     public UseFacade(UseSystemApi api) {
         this.api = api;
     }
+
+    public void updateDerivedValues() {
+        api.getSystem().state().updateDerivedValues(true);
+    }
+
+    // Object Searching
+    // ============================================================================================
 
     /**
      * Returns all objects of a specific class in the USE model.
@@ -61,79 +67,65 @@ public class UseFacade {
         return result;
     }
 
+    // Attribute Getters
+    // ============================================================================================
+
     /**
      * Returns the value of an integer attribute in the model.
      * @param objstate The state of the object whose attribute to retrieve.
-     * @param attributeName The name of the attribute to retrieve. If this name contains dots,
-     *      it is interpreted as a path through the model starting in <i>objstate</i>
-     *      and traversing the specified associations.
-     * @return The value of the attribute.
-     * @throws ClassCastException If the attribute's type is not an integer.
-     * @throws IllegalArgumentException If <i>attributeName</i> is an association path and one of the
-     *      association ends could not be found.
+     * @param attributeName The name of the attribute to retrieve.
+     * @return The value of the attribute, or null if the value is not an integer.
      */
-    public int getIntegerAttribute(MObjectState objstate, String attributeName) {
-        return this.<IntegerValue>getAttributeAux(objstate, attributeName).value();
+    public Integer getIntegerAttribute(MObjectState objstate, String attributeName) {
+        Value v = objstate.attributeValue(attributeName);
+        return v instanceof IntegerValue ? ((IntegerValue) v).value() : null;
     }
 
     /**
      * Returns the value of a real number attribute in the model.
      * @param objstate The state of the object whose attribute to retrieve.
-     * @param attributeName The name of the attribute to retrieve. If this name contains dots,
-     *      it is interpreted as a path through the model starting in <i>objstate</i>
-     *      and traversing the specified associations.
-     * @return The value of the attribute.
-     * @throws ClassCastException If the attribute's type is not a real number.
-     * @throws IllegalArgumentException If <i>attributeName</i> is an association path and one of the
-     *      association ends could not be found.
+     * @param attributeName The name of the attribute to retrieve.
+     * @return The value of the attribute, or null if the value is not a real number.
      */
-    public double getRealAttribute(MObjectState objstate, String attributeName) {
-        return this.<RealValue>getAttributeAux(objstate, attributeName).value();
+    public Double getRealAttribute(MObjectState objstate, String attributeName) {
+        Value v = objstate.attributeValue(attributeName);
+        return v instanceof RealValue ? ((RealValue) v).value() : null;
     }
 
     /**
      * Returns the value of a string attribute in the model.
      * @param objstate The state of the object whose attribute to retrieve.
-     * @param attributeName The name of the attribute to retrieve. If this name contains dots,
-     *      it is interpreted as a path through the model starting in <i>objstate</i>
-     *      and traversing the specified associations.
-     * @return The value of the attribute.
-     * @throws ClassCastException If the attribute's type is not a string.
-     * @throws IllegalArgumentException If <i>attributeName</i> is an association path and one of the
-     *      association ends could not be found.
+     * @param attributeName The name of the attribute to retrieve.
+     * @return The value of the attribute, or null if the value is not a string.
      */
     public String getStringAttribute(MObjectState objstate, String attributeName) {
-        return this.<StringValue>getAttributeAux(objstate, attributeName).value();
+        Value v = objstate.attributeValue(attributeName);
+        return v instanceof StringValue ? ((StringValue) v).value() : null;
     }
 
     /**
      * Returns the value of a boolean attribute in the model.
      * @param objstate The state of the object whose attribute to retrieve.
-     * @param attributeName The name of the attribute to retrieve. If this name contains dots,
-     *      it is interpreted as a path through the model starting in <i>objstate</i>
-     *      and traversing the specified associations.
-     * @return The value of the attribute.
-     * @throws ClassCastException If the attribute's type is not a boolean value.
-     * @throws IllegalArgumentException If <i>attributeName</i> is an association path and one of the
-     *      association ends could not be found.
+     * @param attributeName The name of the attribute to retrieve.
+     * @return The value of the attribute, or null if the value is not a boolean value.
      */
-    public boolean getBooleanAttribute(MObjectState objstate, String attributeName) {
-        return this.<BooleanValue>getAttributeAux(objstate, attributeName).value();
+    public Boolean getBooleanAttribute(MObjectState objstate, String attributeName) {
+        Value v = objstate.attributeValue(attributeName);
+        return v instanceof BooleanValue ? ((BooleanValue) v).value() : null;
     }
 
     /**
      * Returns the value of any attribute as a string.
      * @param objstate The state of the object whose attribute to retrieve.
-     * @param attributeName The name of the attribute to retrieve. If this name contains dots,
-     *      it is interpreted as a path through the model starting in <i>objstate</i>
-     *      and traversing the specified associations.
+     * @param attributeName The name of the attribute to retrieve.
      * @return The value of the attribute.
-     * @throws IllegalArgumentException If <i>attributeName</i> is an association path and one of the
-     *      association ends could not be found.
      */
     public String getAttributeAsString(MObjectState objstate, String attributeName) {
         return objstate.attributeValue(attributeName).toString();
     }
+
+    // Attribute Setters
+    // ============================================================================================
 
     /**
      * Sets the value of attribute <i>attributeName</i>.
@@ -175,24 +167,9 @@ public class UseFacade {
         setAttributeAux(objstate, attributeName, BooleanValue.get(value));
     }
 
-    @SuppressWarnings("unchecked")
-    private <T extends Value> T getAttributeAux(MObjectState objstate, String attributeName) {
-        MSystemState state = api.getSystem().state();
-        String[] attrTokens = attributeName.split("\\.");
-        for (int i = 0; i < attrTokens.length - 1; i++) {
-            String token = attrTokens[i];
-            Value value = objstate.attributeValue(token);
-            if (value instanceof ObjectValue) {
-                objstate = ((ObjectValue) value).value().state(state);
-            } else {
-                throw new IllegalArgumentException("could not find attribute " + attributeName);
-            }
-        }
-        return (T) objstate.attributeValue(attrTokens[attrTokens.length - 1]);
-    }
     private void setAttributeAux(MObjectState objstate, String attributeName, Value value) {
-        MClass objClass = objstate.object().cls();
-        MAttribute attribute = objClass.attribute(attributeName, true);
+        MClass mclass = objstate.object().cls();
+        MAttribute attribute = mclass.attribute(attributeName, true);
         objstate.setAttributeValue(attribute, value);
     }
 

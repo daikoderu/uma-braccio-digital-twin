@@ -238,7 +238,6 @@ class BraccioRobot
             in actualTimes->max()
         pre validPosition: isValidPosition(position)
         pre validTime: minTime >= 0
-        pre notMoving: not self.moving
         post minTimeOk: result >= minTime
 
         -- Moves the robot to a target position in at least minTime seconds
@@ -427,6 +426,16 @@ end
 class CommandResult < Processable
 
     attributes
+        twinId : String
+            derive: self.command.twinId
+        executionId : String
+            derive: self.command.executionId
+        commandName : String
+            derive: self.command.name
+        commandArguments : String
+            derive: self.command.arguments
+        commandTimestamp : Integer
+            derive: self.command.timestamp
         return : String
 
 end

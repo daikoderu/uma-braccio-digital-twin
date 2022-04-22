@@ -1,0 +1,2 @@
+!generator.createCommand('moveto', '60 90 90 90 90 10')
+!ck.run(60)
