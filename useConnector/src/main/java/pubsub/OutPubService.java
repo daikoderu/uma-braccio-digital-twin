@@ -12,7 +12,7 @@ import utils.DTLogger;
 public class OutPubService extends PubService {
 
 	private final JedisPool jedisPool;
-	private final int sleepTime;
+	private final long sleepTime;
 	private boolean running;
 	private final OutputManager output;
 	
@@ -23,7 +23,7 @@ public class OutPubService extends PubService {
 	 * @param sleepTime Milliseconds between each check in the database
 	 * @param outputManager Manager to use to check for instances.
 	 */
-	public OutPubService(String channel, JedisPool jedisPool, int sleepTime, OutputManager outputManager) {
+	public OutPubService(String channel, JedisPool jedisPool, long sleepTime, OutputManager outputManager) {
 		super(channel);
 		this.jedisPool = jedisPool;
 		this.sleepTime = sleepTime;
@@ -36,12 +36,8 @@ public class OutPubService extends PubService {
 	 */
 	public void run() {
         while (running) {
-        	// Wait some seconds until it checks again
-            try {
-                Thread.sleep(sleepTime);
-            } catch (InterruptedException ex) {
-                DTLogger.info(this, "Wait interrupted");
-            }
+        	// Wait some time
+			busyWait(sleepTime);
             
             // Check for new snapshots
             try (Jedis jedisTemporalConnection = jedisPool.getResource()) {

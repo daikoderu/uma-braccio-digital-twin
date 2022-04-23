@@ -25,7 +25,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
 
     private static final int NUM_EXECUTOR_POOL_THREADS = 3;
     private static final String REDIS_HOSTNAME = "localhost";
-    private static final int SLEEP_TIME_MS = 5000;
+    private static final long SLEEP_TIME_MS = 5000;
 
     private JedisPool jedisPool;
     private ExecutorService executor;

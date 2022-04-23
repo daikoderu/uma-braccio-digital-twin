@@ -1,5 +1,7 @@
 package pubsub;
 
+import utils.DTLogger;
+
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
  * Class for a thread that generates ("publishes") events.
@@ -17,5 +19,13 @@ public abstract class PubService implements Runnable {
 	}
 	
 	public abstract void stop();
+
+	protected void busyWait(long millis) {
+		try {
+			Thread.sleep(millis);
+		} catch (InterruptedException ex) {
+			DTLogger.info(this, "Wait interrupted");
+		}
+	}
 
 }
