@@ -1,5 +1,6 @@
 package pubsub;
 
+import digital.twin.CommandManager;
 import digital.twin.CommandResultManager;
 import digital.twin.DTUseFacade;
 import digital.twin.OutputSnapshotsManager;
@@ -15,8 +16,10 @@ public class DTPubSub extends JedisPubSub {
 
     public static final String DT_OUT_CHANNEL = "DTOutChannel";
     public static final String COMMAND_OUT_CHANNEL = "CommandOutChannel";
+    public static final String COMMAND_IN_CHANNEL = "CommandInChannel";
     private final Jedis jedis;
     private final OutputSnapshotsManager dtOutSnapshotsManager;
+    private final CommandManager commandManager;
     private final CommandResultManager commandResultManager;
 
     /**
@@ -27,6 +30,7 @@ public class DTPubSub extends JedisPubSub {
     public DTPubSub(DTUseFacade useApi, Jedis jedis) {
         this.jedis = jedis;
         dtOutSnapshotsManager = new OutputSnapshotsManager(useApi);
+        commandManager = new CommandManager(useApi);
         commandResultManager = new CommandResultManager(useApi);
     }
 
@@ -46,6 +50,9 @@ public class DTPubSub extends JedisPubSub {
                 } catch (Exception ex) {
                     DTLogger.error("An error ocurred:", ex);
                 }
+                break;
+
+            case COMMAND_IN_CHANNEL: // Commands entering USE
                 break;
 
             case COMMAND_OUT_CHANNEL: // Command results leaving USE

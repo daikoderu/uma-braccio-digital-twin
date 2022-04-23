@@ -1,5 +1,6 @@
 package plugin;
 
+import digital.twin.CommandManager;
 import digital.twin.CommandResultManager;
 import digital.twin.DTUseFacade;
 import digital.twin.OutputSnapshotsManager;
@@ -7,6 +8,7 @@ import org.tzi.use.api.UseSystemApi;
 import org.tzi.use.runtime.gui.IPluginAction;
 import org.tzi.use.runtime.gui.IPluginActionDelegate;
 import pubsub.DTPubSub;
+import pubsub.InPubService;
 import pubsub.OutPubService;
 import pubsub.SubService;
 import redis.clients.jedis.Jedis;
@@ -32,6 +34,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     private boolean connectionIsActive;
     private OutPubService outPublisher;
     private OutPubService commandOutPublisher;
+    private InPubService commandInPublisher;
     private DTUseFacade useApi;
 
     /**
@@ -67,11 +70,13 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
             // Initialize USE model
             initializeModel();
 
-            // Create publishing service
+            // Create publishing services
             outPublisher = new OutPubService(DTPubSub.DT_OUT_CHANNEL, jedisPool,
                     SLEEP_TIME_MS, new OutputSnapshotsManager(useApi));
             commandOutPublisher = new OutPubService(DTPubSub.COMMAND_OUT_CHANNEL, jedisPool,
                     SLEEP_TIME_MS, new CommandResultManager(useApi));
+            commandInPublisher = new InPubService(DTPubSub.COMMAND_IN_CHANNEL, jedisPool,
+                    SLEEP_TIME_MS, new CommandManager(useApi));
             ensureThreadPool();
             executor.submit(outPublisher);
             executor.submit(commandOutPublisher);
@@ -83,8 +88,12 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
             Thread commandOutChannelThread = new Thread(
                     new SubService(useApi, jedisPool, DTPubSub.COMMAND_OUT_CHANNEL),
                     DTPubSub.COMMAND_OUT_CHANNEL + " subscriber thread");
+            Thread commandInChannelThread = new Thread(
+                    new SubService(useApi, jedisPool, DTPubSub.COMMAND_IN_CHANNEL),
+                    DTPubSub.COMMAND_IN_CHANNEL + " subscriber thread");
             outChannelThread.start();
             commandOutChannelThread.start();
+            commandInChannelThread.start();
 
             connectionIsActive = true;
         }

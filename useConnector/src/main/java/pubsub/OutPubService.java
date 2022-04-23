@@ -32,7 +32,7 @@ public class OutPubService extends PubService {
 	}
 	
 	/**
-	 * Checks periodically if there are new output snapshots in the currently displayed object diagram on USE.
+	 * Checks periodically if there are new output objects in the currently displayed object diagram on USE.
 	 */
 	public void run() {
         while (running) {
