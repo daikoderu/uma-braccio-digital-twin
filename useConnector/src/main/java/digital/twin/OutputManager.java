@@ -17,7 +17,6 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public abstract class OutputManager {
 
-    protected static final String SNAPSHOT_ID = "snapshotId";
     protected static final String IS_PROCESSED = "isProcessed";
     protected static final String WHEN_PROCESSED = "whenProcessed";
     private static final ReentrantLock logMutex = new ReentrantLock();
@@ -91,79 +90,74 @@ public abstract class OutputManager {
 
         // Generate the object identifier
         String objectId = getObjectId(snapshot);
-        int timestamp = useApi.getIntegerAttribute(snapshot, "timestamp");
         String objectTypeAndId = objectType + ":" + objectId;
-        String fullSnapshotId = objectTypeAndId + ":" + timestamp;
-        armValues.put(SNAPSHOT_ID, fullSnapshotId);
 
-        DTLogger.info(getChannel(), "Saving output object: " + fullSnapshotId);
         for (String attr : attributeSpecification.attributeNames()) {
             AttributeType attrType = attributeSpecification.typeOf(attr);
             int multiplicity = attributeSpecification.multiplicityOf(attr);
             String attrValue = useApi.getAttributeAsString(snapshot, attr);
             if (attrValue != null) {
-                DTLogger.info(getChannel(), "  " + attr + ": " + attrValue);
                 if (multiplicity > 1) {
                     // A sequence of values
                     String[] values = extractValuesFromCollection(attrValue, attrType);
                     if (values.length == multiplicity) {
                         for (int i = 1; i <= multiplicity; i++) {
                             String attrI = attr + "_" + i;
-                            armValues.put(attrI, values[i - 1]);
-                            addSearchRegister(jedis, objectTypeAndId, attrI, attrType, values[i - 1], fullSnapshotId);
+                            String attrvalueI = attrType.toRedisString(values[i - 1]);
+                            armValues.put(attrI,attrvalueI);
+                            addAttributeQueryRegisters(jedis, objectTypeAndId, attrI, attrType, attrvalueI);
                         }
                     } else {
-                        DTLogger.warn(getChannel(), "  Attribute " + attr + " has " + values.length
+                        DTLogger.warn(getChannel(),
+                                "Error saving output object " + objectTypeAndId + ": "
+                                + "attribute " + attr + " has " + values.length
                                 + " value(s), but we need " + multiplicity);
                     }
                 } else {
                     // A single value
-                    armValues.put(attr, attrType.toRedisString(attrValue));
-                    addSearchRegister(jedis, objectTypeAndId, attr, attrType, attrValue, fullSnapshotId);
+                    attrValue = attrType.toRedisString(attrValue);
+                    armValues.put(attr, attrValue);
+                    addAttributeQueryRegisters(jedis, objectTypeAndId, attr, attrType, attrValue);
                 }
             } else {
-                DTLogger.warn(getChannel(), "  Attribute " + attr + " not found in class " + retrievedClass);
+                DTLogger.warn(getChannel(),
+                        "Error saving output object " + objectTypeAndId + ": "
+                                + "attribute " + attr + " not found in class " + retrievedClass);
             }
         }
 
         // Save the object
-        jedis.hset(fullSnapshotId, armValues);
+        jedis.hset(objectTypeAndId, armValues);
+        DTLogger.info(getChannel(), "Saved output object: " + objectTypeAndId);
 
         // Mark object as processed
-        jedis.zadd(objectType + "_PROCESSED", 0, fullSnapshotId);
+        jedis.zadd(objectType + "_PROCESSED", 0, objectTypeAndId);
         useApi.setAttribute(snapshot, IS_PROCESSED, true);
         useApi.setAttribute(snapshot, WHEN_PROCESSED, useApi.getCurrentTime());
+
+        // Add registers for other queries
+        addObjectQueryRegisters(jedis, objectTypeAndId, armValues);
     }
 
     /**
-     * Adds a search register to the database to maintain a list of all states of an object.
+     * Adds registers to the data lake each time an object is processed to make queries possible.
      * @param jedis An instance of the Jedis client to access the data lake.
-     * @param objectTypeAndId The ID of the object to generate the search register for.
-     * @param attributeName The name of the attribute to save.
-     * @param type The type of the attribute to save.
-     * @param value The value to save, as a USE value.
-     * @param objectId The key of the object to be able to be retrieved.
+     * @param objectTypeAndId The ID of the object to generate the registers for.
+     * @param values The values of the object to generate the registers for.
      */
-    protected void addSearchRegister(
+    protected abstract void addObjectQueryRegisters(
+            Jedis jedis, String objectTypeAndId, Map<String, String> values);
+
+    /**
+     * Adds registers to the data lake each time an attribute is processed to make queries possible.
+     * @param jedis An instance of the Jedis client to access the data lake.
+     * @param objectTypeAndId The ID of the object to generate the registers for.
+     * @param attributeName The name of the attribute to generate the registers for.
+     * @param attributeValue The value of the attribute to generate the registers for.
+     */
+    protected abstract void addAttributeQueryRegisters(
             Jedis jedis, String objectTypeAndId, String attributeName,
-            AttributeType type, String value, String objectId) {
-        String key = objectTypeAndId + ":" + attributeName + "_HISTORY";
-        double score;
-        switch (type) {
-
-            case INTEGER:
-            case REAL:
-                score = Double.parseDouble(value.replace("'", ""));
-                jedis.zadd(key, score, objectId);
-                break;
-
-            case BOOLEAN:
-                score = Boolean.parseBoolean(value) ? 1 : 0;
-                jedis.zadd(key, score, objectId);
-                break;
-
-        }
-    }
+            AttributeType type, String attributeValue);
 
     /**
      * Generates and returns an identifier for an object to be stored in the data lake.

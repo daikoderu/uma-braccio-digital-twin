@@ -34,4 +34,25 @@ public enum AttributeType {
         }
     }
 
+    /**
+     * Returns the score to give to a Redis value according to this type.
+     * @param value The Redis value to convert whose score to calculate.
+     * @return The resulting score.
+     */
+    public double getScore(String value) {
+        switch (this) {
+
+            case BOOLEAN:
+                return Boolean.parseBoolean(value) ? 1 : 0;
+
+            case INTEGER:
+            case REAL:
+                return Double.parseDouble(value.replace("'", ""));
+
+            default:
+                return 0;
+
+        }
+    }
+
 }

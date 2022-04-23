@@ -3,7 +3,10 @@ package digital.twin;
 import digital.twin.attributes.AttributeType;
 import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
+import redis.clients.jedis.Jedis;
 import utils.StringUtils;
+
+import java.util.Map;
 
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
@@ -30,5 +33,12 @@ public class CommandResultManager extends OutputManager {
         return StringUtils.removeQuotes(twinId) + ":" + StringUtils.removeQuotes(executionId)
                 + ":" + ++commandCounter;
     }
+
+    protected void addObjectQueryRegisters(
+            Jedis jedis, String objectTypeAndId, Map<String, String> values) { }
+
+    protected void addAttributeQueryRegisters(
+            Jedis jedis, String objectTypeAndId, String attributeName,
+            AttributeType type, String attributeValue) { }
 
 }
