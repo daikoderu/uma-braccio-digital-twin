@@ -9,9 +9,6 @@ import utils.DTLogger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
-
-import pubsub.DTPubSub;
 
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
@@ -22,7 +19,6 @@ public abstract class OutputManager {
     protected static final String IS_PROCESSED = "isProcessed";
     protected static final String WHEN_PROCESSED = "whenProcessed";
     protected static final String TIMESTAMP = "timestamp";
-    private static final ReentrantLock logMutex = new ReentrantLock();
 
     protected final AttributeSpecification attributeSpecification;
     protected final DTUseFacade useApi;
@@ -72,23 +68,20 @@ public abstract class OutputManager {
      */
     public void saveObjectsToDataLake(Jedis jedis) {
         useApi.updateDerivedValues();
-        List<MObjectState> unprocessedCommands = getUnprocessedModelObjects();
-        for (MObjectState command : unprocessedCommands) {
-            try {
-                logMutex.lock();
-                saveOneObject(jedis, command);
-            } finally {
-                logMutex.unlock();
-            }
+        List<MObjectState> unprocessedObjects = getUnprocessedModelObjects();
+        DTRedisUtils redisUtils = new DTRedisUtils(jedis);
+        for (MObjectState objstate : unprocessedObjects) {
+            saveOneObject(jedis, redisUtils, objstate);
         }
     }
 
     /**
      * Auxiliary method to store the object in the database, extracted from the diagram.
      * @param jedis An instance of the Jedis client to access the data lake.
+     * @param redisUtils Instance with utility methods to manipulate our data lake.
      * @param objstate The object to store.
      */
-    private void saveOneObject(Jedis jedis, MObjectState objstate) {
+    private void saveOneObject(Jedis jedis, DTRedisUtils redisUtils, MObjectState objstate) {
         Map<String, String> armValues = new HashMap<>();
 
         // Generate the object identifier
@@ -106,7 +99,7 @@ public abstract class OutputManager {
                     if (values.length == multiplicity) {
                         for (int i = 1; i <= multiplicity; i++) {
                             String attrI = attr + "_" + i;
-                            String attrvalueI = attrType.toRedisString(values[i - 1]);
+                            String attrvalueI = attrType.fromUseToRedisString(values[i - 1]);
                             armValues.put(attrI,attrvalueI);
                             addAttributeQueryRegisters(jedis, objectTypeAndId, attrI, attrType, attrvalueI);
                         }
@@ -118,7 +111,7 @@ public abstract class OutputManager {
                     }
                 } else {
                     // A single value
-                    attrValue = attrType.toRedisString(attrValue);
+                    attrValue = attrType.fromUseToRedisString(attrValue);
                     armValues.put(attr, attrValue);
                     addAttributeQueryRegisters(jedis, objectTypeAndId, attr, attrType, attrValue);
                 }
@@ -139,9 +132,7 @@ public abstract class OutputManager {
         useApi.setAttribute(objstate, WHEN_PROCESSED, useApi.getCurrentTime());
 
         // Update the Data Lake's timestamp
-        int currentTimestamp = Integer.parseInt(jedis.get(DTPubSub.DL_NOW));
-        int objectTimestamp = useApi.getIntegerAttribute(objstate, TIMESTAMP);
-        jedis.set(DTPubSub.DL_NOW, Math.max(currentTimestamp, objectTimestamp) + "");
+        redisUtils.updateTimestamp(useApi);
 
         // Add registers for other queries
         addObjectQueryRegisters(jedis, objectTypeAndId, armValues);
@@ -184,7 +175,7 @@ public abstract class OutputManager {
         collection = collection.replaceAll("(?:Set|Bag|OrderedSet|Sequence)\\{(.*)}", "$1");
         String[] result = collection.split(",");
         for (int i = 0; i < result.length; i++) {
-            result[i] = baseType.toRedisString(result[i]);
+            result[i] = baseType.fromUseToRedisString(result[i]);
         }
         return result;
     }

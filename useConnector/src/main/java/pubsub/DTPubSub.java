@@ -18,10 +18,6 @@ public class DTPubSub extends JedisPubSub {
     public static final String COMMAND_OUT_CHANNEL = "CommandOutChannel";
     public static final String COMMAND_IN_CHANNEL = "CommandInChannel";
 
-    public static final String DL_NOW = "now";
-    public static final String DL_EXECUTION_ID = "executionId";
-    public static final String DL_COMMAND_COUNTER = "commandCounter";
-
     private final Jedis jedis;
     private final OutputSnapshotsManager dtOutSnapshotsManager;
     private final CommandManager commandManager;
@@ -58,6 +54,12 @@ public class DTPubSub extends JedisPubSub {
                 break;
 
             case COMMAND_IN_CHANNEL: // Commands entering USE
+                try {
+                    commandManager.saveObjectsToUseModel(jedis);
+                    DTLogger.info("New Commands received");
+                } catch (Exception ex) {
+                    DTLogger.error("An error ocurred:", ex);
+                }
                 break;
 
             case COMMAND_OUT_CHANNEL: // Command results leaving USE

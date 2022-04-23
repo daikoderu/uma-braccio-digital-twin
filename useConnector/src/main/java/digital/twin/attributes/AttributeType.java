@@ -15,7 +15,7 @@ public enum AttributeType {
      * @param value The USE value to convert, as a string returned by the USE API.
      * @return The value to be stored in Redis.
      */
-    public String toRedisString(String value) {
+    public String fromUseToRedisString(String value) {
         switch (this) {
 
             case BOOLEAN:
@@ -30,6 +30,32 @@ public enum AttributeType {
 
             default:
                 return "???";
+
+        }
+    }
+
+    /**
+     * Converts a USE value string to a string to be stored on a Redis data lake.
+     * @param value The Redis value to convert, as a string returned by the Data Lake.
+     * @return The value to be passed to the USEFacade methods.
+     */
+    public Object fromRedisStringToObject(String value) {
+        switch (this) {
+
+            case BOOLEAN:
+                return value.equals("0") ? 0 : 1;
+
+            case INTEGER:
+                return Integer.parseInt(value);
+
+            case REAL:
+                return Double.parseDouble(value);
+
+            case STRING:
+                return value;
+
+            default:
+                return null;
 
         }
     }

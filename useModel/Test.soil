@@ -1,2 +1,6 @@
 !generator.createCommand('moveto', '60 90 90 90 90 10')
 !ck.run(60)
+
+-- get now
+-- get commandCounter
+-- hsetall DTCommand:<twinId>:<executionId> twinId <twinId> executionId <executionId> name "moveto" arguments "60 90 90 90 90 10" timestamp <now> commandId <commandCounter>

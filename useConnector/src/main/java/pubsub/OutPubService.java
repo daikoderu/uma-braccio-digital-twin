@@ -39,7 +39,7 @@ public class OutPubService extends PubService {
         	// Wait some time
 			busyWait(sleepTime);
             
-            // Check for new snapshots
+            // Check for new objects
             try (Jedis jedis = jedisPool.getResource()) {
             	if (!output.getUnprocessedModelObjects().isEmpty()) {
 					jedis.publish(getChannel(), "New Information");

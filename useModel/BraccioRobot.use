@@ -409,6 +409,7 @@ abstract class Command < Processable
         name : String
             derive: getName()
         arguments : String
+        commandId : Integer
 
     operations
 

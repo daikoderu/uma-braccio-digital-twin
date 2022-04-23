@@ -1,9 +1,6 @@
 package plugin;
 
-import digital.twin.CommandManager;
-import digital.twin.CommandResultManager;
-import digital.twin.DTUseFacade;
-import digital.twin.OutputSnapshotsManager;
+import digital.twin.*;
 import org.tzi.use.api.UseSystemApi;
 import org.tzi.use.runtime.gui.IPluginAction;
 import org.tzi.use.runtime.gui.IPluginActionDelegate;
@@ -150,8 +147,8 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     private void initializeModel() {
         try (Jedis jedis = jedisPool.getResource()) {
             setExecutionIds(jedis);
-            jedis.set(DTPubSub.DL_NOW, 0 + "");
-            jedis.set(DTPubSub.DL_COMMAND_COUNTER, 0 + "");
+            jedis.set(DTRedisUtils.DL_NOW, 0 + "");
+            jedis.set(DTRedisUtils.DL_COMMAND_COUNTER, 0 + "");
         } catch (Exception ex) {
             DTLogger.error("Error initializing USE model:", ex);
         }
@@ -162,7 +159,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
         for (MObjectState clock : useApi.getObjectsOfClass("BraccioRobot")) {
             useApi.setAttribute(clock, "executionId", posixTime);
         }
-        jedis.set(DTPubSub.DL_EXECUTION_ID, posixTime);
+        jedis.set(DTRedisUtils.DL_EXECUTION_ID, posixTime);
     }
 
 }

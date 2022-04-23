@@ -3,9 +3,9 @@ package utils;
 import org.tzi.use.api.UseSystemApi;
 import org.tzi.use.uml.mm.MAttribute;
 import org.tzi.use.uml.mm.MClass;
+import org.tzi.use.uml.ocl.type.Type;
 import org.tzi.use.uml.ocl.value.*;
-import org.tzi.use.uml.sys.MObject;
-import org.tzi.use.uml.sys.MObjectState;
+import org.tzi.use.uml.sys.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +28,15 @@ public class UseFacade {
 
     public void updateDerivedValues() {
         api.getSystem().state().updateDerivedValues(true);
+    }
+
+    // Object Creation
+    // ============================================================================================
+
+    public MObjectState createObject(String className, String objectName) throws MSystemException {
+        MClass mclass = api.getSystem().model().getClass(className);
+        MSystemState state = api.getSystem().state();
+        return state.createObject(mclass, objectName).state(state);
     }
 
     // Object Searching
@@ -133,38 +142,45 @@ public class UseFacade {
      * @param attributeName The name of the attribute to set.
      * @param value The value to set.
      */
-    public void setAttribute(MObjectState objstate, String attributeName, int value) {
-        setAttributeAux(objstate, attributeName, IntegerValue.valueOf(value));
+    public void setAttribute(MObjectState objstate, String attributeName, Object value) {
+        setAttributeAux(objstate, attributeName, objectToUseValue(value));
     }
 
-    /**
-     * Sets the value of attribute <i>attributeName</i>.
-     * @param objstate The object whose attribute to set.
-     * @param attributeName The name of the attribute to set.
-     * @param value The value to set.
-     */
-    public void setAttribute(MObjectState objstate, String attributeName, double value) {
-        setAttributeAux(objstate, attributeName, new RealValue(value));
-    }
-
-    /**
-     * Sets the value of attribute <i>attributeName</i>.
-     * @param objstate The object whose attribute to set.
-     * @param attributeName The name of the attribute to set.
-     * @param value The value to set.
-     */
-    public void setAttribute(MObjectState objstate, String attributeName, String value) {
-        setAttributeAux(objstate, attributeName, new StringValue(value));
-    }
-
-    /**
-     * Sets the value of attribute <i>attributeName</i>.
-     * @param objstate The object whose attribute to set.
-     * @param attributeName The name of the attribute to set.
-     * @param value The value to set.
-     */
-    public void setAttribute(MObjectState objstate, String attributeName, boolean value) {
-        setAttributeAux(objstate, attributeName, BooleanValue.get(value));
+    @SuppressWarnings("unchecked")
+    private Value objectToUseValue(Object object) {
+        if (object instanceof Integer) {
+            return IntegerValue.valueOf((int) object);
+        } else if (object instanceof Double) {
+            return new RealValue((double) object);
+        } else if (object instanceof String) {
+            return new StringValue((String) object);
+        } else if (object instanceof Boolean) {
+            return BooleanValue.get((boolean) object);
+        } else if (object instanceof List) {
+            List<Object> list = (List<Object>) object;
+            Type type = null;
+            boolean multipleTypes = false;
+            List<Value> useValues = new ArrayList<>();
+            for (Object listobj : list) {
+                Value newValue = objectToUseValue(listobj);
+                if (type != null) {
+                    if (!type.equals(newValue.type())) {
+                        multipleTypes = true;
+                        break;
+                    }
+                } else {
+                    type = newValue.type();
+                }
+                useValues.add(newValue);
+            }
+            if (type != null && !multipleTypes) {
+                return new SequenceValue(type, useValues);
+            } else {
+                throw new RuntimeException("Cannot convert this Java object to a USE value");
+            }
+        } else {
+            throw new RuntimeException("Cannot convert this Java object to a USE value");
+        }
     }
 
     private void setAttributeAux(MObjectState objstate, String attributeName, Value value) {

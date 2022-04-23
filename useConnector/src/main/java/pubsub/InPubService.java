@@ -40,9 +40,12 @@ public class InPubService extends PubService {
             // Wait some time
             busyWait(sleepTime);
 
-            // Check for new snapshots
-            try (Jedis jedisTemporalConnection = jedisPool.getResource()) {
-                // TODO
+            // Check for new objects
+            try (Jedis jedis = jedisPool.getResource()) {
+                if (!input.getUnprocessedDLObjects(jedis).isEmpty()) {
+                    jedis.publish(getChannel(), "New Information");
+                    DTLogger.info(this, "New Information");
+                }
             } catch (Exception ex) {
                 DTLogger.error("An error ocurred:", ex);
             }
