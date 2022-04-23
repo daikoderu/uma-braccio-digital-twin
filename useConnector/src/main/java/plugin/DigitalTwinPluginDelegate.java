@@ -7,6 +7,7 @@ import digital.twin.OutputSnapshotsManager;
 import org.tzi.use.api.UseSystemApi;
 import org.tzi.use.runtime.gui.IPluginAction;
 import org.tzi.use.runtime.gui.IPluginActionDelegate;
+import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
 import pubsub.InPubService;
 import pubsub.OutPubService;
@@ -124,11 +125,9 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
      * @return true if connection is successful, false otherwise.
      */
     private boolean checkConnectionWithDatabase() {
-        try {
-            Jedis jedis = jedisPool.getResource();
+        try (Jedis jedis = jedisPool.getResource()) {
             DTLogger.info("Connection successful");
             DTLogger.info("The server is running: " + jedis.ping());
-            jedisPool.returnResource(jedis);
             return true;
         } catch (Exception ex) {
             DTLogger.error("Data lake connection error:", ex);
@@ -149,7 +148,21 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
      * Initializes the USE model.
      */
     private void initializeModel() {
-        useApi.setExecutionIds();
+        try (Jedis jedis = jedisPool.getResource()) {
+            setExecutionIds(jedis);
+            jedis.set(DTPubSub.DL_NOW, 0 + "");
+            jedis.set(DTPubSub.DL_COMMAND_COUNTER, 0 + "");
+        } catch (Exception ex) {
+            DTLogger.error("Error initializing USE model:", ex);
+        }
+    }
+
+    private void setExecutionIds(Jedis jedis) {
+        String posixTime = System.currentTimeMillis() + "";
+        for (MObjectState clock : useApi.getObjectsOfClass("BraccioRobot")) {
+            useApi.setAttribute(clock, "executionId", posixTime);
+        }
+        jedis.set(DTPubSub.DL_EXECUTION_ID, posixTime);
     }
 
 }

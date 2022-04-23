@@ -17,6 +17,11 @@ public class DTPubSub extends JedisPubSub {
     public static final String DT_OUT_CHANNEL = "DTOutChannel";
     public static final String COMMAND_OUT_CHANNEL = "CommandOutChannel";
     public static final String COMMAND_IN_CHANNEL = "CommandInChannel";
+
+    public static final String DL_NOW = "now";
+    public static final String DL_EXECUTION_ID = "executionId";
+    public static final String DL_COMMAND_COUNTER = "commandCounter";
+
     private final Jedis jedis;
     private final OutputSnapshotsManager dtOutSnapshotsManager;
     private final CommandManager commandManager;

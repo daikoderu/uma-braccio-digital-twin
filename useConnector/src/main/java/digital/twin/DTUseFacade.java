@@ -30,13 +30,15 @@ public class DTUseFacade extends UseFacade {
     }
 
     /**
-     * Sets the execution IDs of all robots in the model to the current POSIX timestamp.
+     * Sets the execution IDs of all robots in the model to the current POSIX timestamp
+     * @return The current POSIX timestamp, as a string.
      */
-    public void setExecutionIds() {
-        String posixTime = System.currentTimeMillis() + "";
+    public long setExecutionIds() {
+        long posixTime = System.currentTimeMillis();
         for (MObjectState clock : getObjectsOfClass("BraccioRobot")) {
-            setAttribute(clock, "executionId", posixTime);
+            setAttribute(clock, "executionId", posixTime + "");
         }
+        return posixTime;
     }
 
 }

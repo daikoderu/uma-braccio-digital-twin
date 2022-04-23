@@ -40,9 +40,9 @@ public class OutPubService extends PubService {
 			busyWait(sleepTime);
             
             // Check for new snapshots
-            try (Jedis jedisTemporalConnection = jedisPool.getResource()) {
+            try (Jedis jedis = jedisPool.getResource()) {
             	if (!output.getUnprocessedModelObjects().isEmpty()) {
-            		jedisTemporalConnection.publish(getChannel(), "New Information");
+					jedis.publish(getChannel(), "New Information");
             		DTLogger.info(this, "New Information");
             	}
             } catch (Exception ex) {

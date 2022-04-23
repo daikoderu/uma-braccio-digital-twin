@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
+import pubsub.DTPubSub;
+
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
  * Class that retrieves all instances of a USE model class and serializes them for storage in the data lake.
@@ -19,6 +21,7 @@ public abstract class OutputManager {
 
     protected static final String IS_PROCESSED = "isProcessed";
     protected static final String WHEN_PROCESSED = "whenProcessed";
+    protected static final String TIMESTAMP = "timestamp";
     private static final ReentrantLock logMutex = new ReentrantLock();
 
     protected final AttributeSpecification attributeSpecification;
@@ -38,7 +41,7 @@ public abstract class OutputManager {
      */
     public OutputManager(DTUseFacade useApi, String channel, String retrievedClass, String objectType) {
         attributeSpecification = new AttributeSpecification();
-        attributeSpecification.set("timestamp", AttributeType.INTEGER);
+        attributeSpecification.set(TIMESTAMP, AttributeType.INTEGER);
         this.useApi = useApi;
         this.channel = channel;
         this.retrievedClass = retrievedClass;
@@ -83,19 +86,19 @@ public abstract class OutputManager {
     /**
      * Auxiliary method to store the object in the database, extracted from the diagram.
      * @param jedis An instance of the Jedis client to access the data lake.
-     * @param snapshot The object to store.
+     * @param objstate The object to store.
      */
-    private void saveOneObject(Jedis jedis, MObjectState snapshot) {
+    private void saveOneObject(Jedis jedis, MObjectState objstate) {
         Map<String, String> armValues = new HashMap<>();
 
         // Generate the object identifier
-        String objectId = getObjectId(snapshot);
+        String objectId = getObjectId(objstate);
         String objectTypeAndId = objectType + ":" + objectId;
 
         for (String attr : attributeSpecification.attributeNames()) {
             AttributeType attrType = attributeSpecification.typeOf(attr);
             int multiplicity = attributeSpecification.multiplicityOf(attr);
-            String attrValue = useApi.getAttributeAsString(snapshot, attr);
+            String attrValue = useApi.getAttributeAsString(objstate, attr);
             if (attrValue != null) {
                 if (multiplicity > 1) {
                     // A sequence of values
@@ -132,8 +135,13 @@ public abstract class OutputManager {
 
         // Mark object as processed
         jedis.zadd(objectType + "_PROCESSED", 0, objectTypeAndId);
-        useApi.setAttribute(snapshot, IS_PROCESSED, true);
-        useApi.setAttribute(snapshot, WHEN_PROCESSED, useApi.getCurrentTime());
+        useApi.setAttribute(objstate, IS_PROCESSED, true);
+        useApi.setAttribute(objstate, WHEN_PROCESSED, useApi.getCurrentTime());
+
+        // Update the Data Lake's timestamp
+        int currentTimestamp = Integer.parseInt(jedis.get(DTPubSub.DL_NOW));
+        int objectTimestamp = useApi.getIntegerAttribute(objstate, TIMESTAMP);
+        jedis.set(DTPubSub.DL_NOW, Math.max(currentTimestamp, objectTimestamp) + "");
 
         // Add registers for other queries
         addObjectQueryRegisters(jedis, objectTypeAndId, armValues);
