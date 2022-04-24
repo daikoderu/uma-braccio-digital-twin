@@ -178,6 +178,8 @@ public class UseFacade {
             } else {
                 throw new RuntimeException("Cannot convert this Java object to a USE value");
             }
+        } else if (object == null) {
+            return UndefinedValue.instance;
         } else {
             throw new RuntimeException("Cannot convert this Java object to a USE value");
         }

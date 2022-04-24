@@ -78,6 +78,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
             ensureThreadPool();
             executor.submit(outPublisher);
             executor.submit(commandOutPublisher);
+            executor.submit(commandInPublisher);
 
             // Create subscribing threads
             Thread outChannelThread = new Thread(

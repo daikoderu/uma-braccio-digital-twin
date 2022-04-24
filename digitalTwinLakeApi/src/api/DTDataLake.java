@@ -63,7 +63,7 @@ public class DTDataLake implements Closeable {
         hash.put("executionId", getCurrentExecutionId());
         hash.put("timestamp", getCurrentTime() + "");
         hash.put("name", command);
-        hash.put("args", argJoiner.toString());
+        hash.put("arguments", argJoiner.toString());
         hash.put("commandId", commandId + "");
         jedis.hset(key, hash);
         jedis.zadd("DTCommand_UNPROCESSED", commandId, key);

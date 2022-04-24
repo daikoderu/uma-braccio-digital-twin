@@ -407,14 +407,10 @@ abstract class Command < Processable
         twinId : String
         executionId : String
         name : String
-            derive: getName()
         arguments : String
         commandId : Integer
 
     operations
-
-        getName() : String
-            = null
 
         executeImmediately(robot : BraccioRobot, args : Sequence(String), now : Integer) : String
         begin
@@ -433,6 +429,8 @@ class CommandResult < Processable
             derive: self.command.twinId
         executionId : String
             derive: self.command.executionId
+        commandId : Integer
+            derive: self.command.commandId
         commandName : String
             derive: self.command.name
         commandArguments : String
@@ -454,9 +452,6 @@ class MoveToPositionCommand < Command
         parsedPosition : Sequence(Integer)
     
     operations
-
-        getName() : String
-            = 'moveto'
 
         executeImmediately(robot : BraccioRobot, args : Sequence(String), now : Integer) : String
         begin
@@ -547,6 +542,7 @@ class CommandGenerator < ActiveObject
                 result.twinId := self.robot.twinId;
                 result.executionId := self.robot.executionId;
                 result.timestamp := self.clock.now;
+                result.name := name;
                 result.arguments := args;
             end;
         end

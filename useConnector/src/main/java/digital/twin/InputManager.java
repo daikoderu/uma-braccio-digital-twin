@@ -79,7 +79,6 @@ public abstract class InputManager {
             for (String attr : attributeSpecification.attributeNames()) {
                 AttributeType type = attributeSpecification.typeOf(attr);
                 int multiplicity = attributeSpecification.multiplicityOf(attr);
-
                 if (multiplicity > 1) {
                     int numberOfValues = getNumberOfValues(hash, attr);
                     if (numberOfValues == multiplicity) {
@@ -107,12 +106,16 @@ public abstract class InputManager {
         double score = jedis.zscore(objectType + "_UNPROCESSED", key);
         jedis.zrem(objectType + "_UNPROCESSED", key);
         jedis.zadd(objectType + "_PROCESSED", score, key);
+        DTLogger.info(getChannel(), "Saved input object: " + key);
 
         // Update the Data Lake's timestamp
         redisUtils.updateTimestamp(useApi);
 
         // Set whenProcessed to indicate when this instance has been saved to the USE model.
         jedis.hset(key, WHEN_PROCESSED, useApi.getCurrentTime() + "");
+
+        // Evaluate derived values
+        useApi.updateDerivedValues();
 
     }
 

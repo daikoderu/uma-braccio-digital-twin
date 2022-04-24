@@ -11,6 +11,7 @@ public class CommandManager extends InputManager {
         super(useApi, DTPubSub.COMMAND_IN_CHANNEL, "DTCommand");
         attributeSpecification.set("twinId", AttributeType.STRING);
         attributeSpecification.set("executionId", AttributeType.STRING);
+        attributeSpecification.set("name", AttributeType.STRING);
         attributeSpecification.set("arguments", AttributeType.STRING);
         attributeSpecification.set("commandId", AttributeType.INTEGER);
     }

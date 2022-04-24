@@ -14,24 +14,23 @@ import java.util.Map;
  */
 public class CommandResultManager extends OutputManager {
 
-    private int commandCounter;
-
     public CommandResultManager(DTUseFacade useApi) {
         super(useApi, DTPubSub.COMMAND_OUT_CHANNEL, "CommandResult", "DTCommandResult");
         attributeSpecification.set("twinId", AttributeType.STRING);
         attributeSpecification.set("executionId", AttributeType.STRING);
+        attributeSpecification.set("commandId", AttributeType.INTEGER);
         attributeSpecification.set("commandName", AttributeType.STRING);
         attributeSpecification.set("commandArguments", AttributeType.STRING);
         attributeSpecification.set("commandTimestamp", AttributeType.INTEGER);
         attributeSpecification.set("return", AttributeType.STRING);
-        commandCounter = 0;
     }
 
     protected String getObjectId(MObjectState objstate) {
         String twinId = useApi.getStringAttribute(objstate, "twinId");
         String executionId = useApi.getStringAttribute(objstate, "executionId");
+        int commandId = useApi.getIntegerAttribute(objstate, "commandId");
         return StringUtils.removeQuotes(twinId) + ":" + StringUtils.removeQuotes(executionId)
-                + ":" + ++commandCounter;
+                + ":" + commandId;
     }
 
     protected void addObjectQueryRegisters(
