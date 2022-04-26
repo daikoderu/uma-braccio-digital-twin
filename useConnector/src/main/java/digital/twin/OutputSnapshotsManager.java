@@ -3,7 +3,6 @@ package digital.twin;
 import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
 import redis.clients.jedis.Jedis;
-import utils.StringUtils;
 
 import java.util.Map;
 
@@ -36,8 +35,7 @@ public class OutputSnapshotsManager extends OutputManager {
         assert twinId != null;
         assert executionId != null;
         assert timestamp != null;
-        return StringUtils.removeQuotes(twinId) + ":" + StringUtils.removeQuotes(executionId)
-                + ":" + timestamp;
+        return twinId + ":" + executionId + ":" + timestamp;
     }
 
     protected void addObjectQueryRegisters(

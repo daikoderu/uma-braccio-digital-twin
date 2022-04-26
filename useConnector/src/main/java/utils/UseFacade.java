@@ -14,6 +14,7 @@ import java.util.List;
  * @author Daniel Pérez - University of Málaga
  * A collection of utility methods for USE model manipulation.
  */
+@SuppressWarnings("unused")
 public class UseFacade {
 
     private final UseSystemApi api;

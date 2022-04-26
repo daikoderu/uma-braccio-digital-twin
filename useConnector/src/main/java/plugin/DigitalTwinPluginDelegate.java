@@ -104,6 +104,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     private void disconnect() {
         outPublisher.stop();
         commandOutPublisher.stop();
+        commandInPublisher.stop();
         connectionIsActive = false;
         DTLogger.info("Connection ended successfully");
     }

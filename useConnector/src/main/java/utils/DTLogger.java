@@ -8,6 +8,7 @@ import java.io.PrintStream;
  * @author Daniel Pérez - University of Málaga
  * A collection of utility methods for printing text to the console.
  */
+@SuppressWarnings("unused")
 public class DTLogger {
 
     /**
