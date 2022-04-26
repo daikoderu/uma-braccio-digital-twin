@@ -1,4 +1,4 @@
-package digital.twin.attributes;
+package digital.twin;
 
 import utils.StringUtils;
 
@@ -26,7 +26,7 @@ public enum AttributeType {
                 return value;
 
             case STRING:
-                return StringUtils.removeQuotes(value);
+                return value.substring(1, value.length() - 1);
 
             default:
                 return "???";
@@ -43,7 +43,7 @@ public enum AttributeType {
         switch (this) {
 
             case BOOLEAN:
-                return value.equals("0") ? 0 : 1;
+                return !value.equals("0");
 
             case INTEGER:
                 return Integer.parseInt(value);

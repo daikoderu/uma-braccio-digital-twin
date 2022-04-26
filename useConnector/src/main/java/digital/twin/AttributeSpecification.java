@@ -1,4 +1,4 @@
-package digital.twin.attributes;
+package digital.twin;
 
 import java.util.*;
 
