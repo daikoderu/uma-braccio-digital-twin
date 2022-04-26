@@ -1,7 +1,5 @@
 package digital.twin;
 
-import utils.StringUtils;
-
 /**
  * @author Daniel Pérez - University of Málaga
  * Types of each attribute in an AttributeSpecification.
@@ -29,7 +27,7 @@ public enum AttributeType {
                 return value.substring(1, value.length() - 1);
 
             default:
-                return "???";
+                return "undefined";
 
         }
     }
@@ -73,7 +71,7 @@ public enum AttributeType {
 
             case INTEGER:
             case REAL:
-                return Double.parseDouble(value.replace("'", ""));
+                return Double.parseDouble(value);
 
             default:
                 return 0;

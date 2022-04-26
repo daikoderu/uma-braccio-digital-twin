@@ -1,10 +1,8 @@
 package digital.twin;
 
-import digital.twin.attributes.AttributeType;
 import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
 import redis.clients.jedis.Jedis;
-import utils.StringUtils;
 
 import java.util.Map;
 
@@ -29,8 +27,7 @@ public class CommandResultManager extends OutputManager {
         String twinId = useApi.getStringAttribute(objstate, "twinId");
         String executionId = useApi.getStringAttribute(objstate, "executionId");
         int commandId = useApi.getIntegerAttribute(objstate, "commandId");
-        return StringUtils.removeQuotes(twinId) + ":" + StringUtils.removeQuotes(executionId)
-                + ":" + commandId;
+        return twinId + ":" + executionId + ":" + commandId;
     }
 
     protected void addObjectQueryRegisters(

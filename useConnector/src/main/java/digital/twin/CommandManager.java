@@ -1,6 +1,5 @@
 package digital.twin;
 
-import digital.twin.attributes.AttributeType;
 import pubsub.DTPubSub;
 
 import java.util.Map;
@@ -19,15 +18,10 @@ public class CommandManager extends InputManager {
     @Override
     protected String getTargetClass(Map<String, String> hash) {
         String commandName = hash.get("name");
-        switch (commandName) {
-
-            case "moveto":
-                return "MoveToPositionCommand";
-
-            default:
-                throw new RuntimeException("Invalid command: " + commandName);
-
+        if ("moveto".equals(commandName)) {
+            return "MoveToPositionCommand";
         }
+        throw new RuntimeException("Invalid command: " + commandName);
     }
 
 }

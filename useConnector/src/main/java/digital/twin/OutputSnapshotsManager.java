@@ -1,6 +1,5 @@
 package digital.twin;
 
-import digital.twin.attributes.AttributeType;
 import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
 import redis.clients.jedis.Jedis;
