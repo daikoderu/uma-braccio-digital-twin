@@ -50,11 +50,17 @@ class _BraccioPT
             bool doSoftStart = true,
             unsigned long baudRate = 115200);
 
-        // Moves the arm to the given position in at least minTime seconds.
-        void moveToPosition(const Position& newPosition, double minTime);
+        // Function to be called in the Arduino loop() function, taking the current value of millis()
+        void loop(unsigned long ms);
+
+        // Sets a target position in at least minTime seconds.
+        void moveToPosition(const Position& newPosition, float minTime);
 
         // Returns how much time will take to move the arm to the given position.
-        double getMoveDuration(const Position& newPosition, double minTime);
+        float getMoveDuration(const Position& newPosition, float minTime);
+
+        // Returns true if the robot is moving right now.
+        bool isMoving();
 
     private:
 
@@ -64,10 +70,14 @@ class _BraccioPT
         Servo wristRotation;
         Servo wrist;
         Servo gripper;
-        Position currentPosition;
+        float currentPosition[6];
+        float targetPosition[6];
+        float currentSpeeds[6];
+        unsigned long nextMs;
 
         void softStart();
-
+        void action();
+        
 };
 
 extern _BraccioPT BraccioPT;

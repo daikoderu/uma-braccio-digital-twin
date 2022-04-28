@@ -47,56 +47,45 @@ void _BraccioPT::init(Position& startPosition, bool doSoftStart, unsigned long b
     {
         softStart();
     }
-    currentPosition = startPosition;
+    for (int i = 0; i < 6; i++)
+    {
+        currentPosition[i] = startPosition.get(i);
+        targetPosition[i] = startPosition.get(i);
+        currentSpeeds[i] = 0;
+    }
+    nextMs = 0;
 
     // Initialize serial port
     Serial.begin(baudRate);
+
 }
 
-void _BraccioPT::moveToPosition(const Position& newPosition, double minTime)
+void _BraccioPT::loop(unsigned long ms)
 {
-    if (currentPosition != newPosition)
+    while (ms >= nextMs)
     {
-        double time = getMoveDuration(newPosition, minTime);
-        double positions[6];
-        double steps[6];
-        for (int i = 0; i < 6; i++)
-        {
-            double displacement = abs(newPosition.get(i) - currentPosition.get(i));
-            positions[i] = currentPosition.get(i);
-            steps[i] = displacement * STEP_DELAY_MS / (MS_PER_S * time);
-        }
-
-        for (int t = 0; t < MS_PER_S * time; t += STEP_DELAY_MS)
-        {
-            for (int i = 0; i < 6; i++)
-            {
-                if (positions[i] < newPosition.get(i))
-                {
-                    positions[i] = min(positions[i] + steps[i], newPosition.get(i));
-                }
-                else if (positions[i] > newPosition.get(i))
-                {
-                    positions[i] = max(positions[i] - steps[i], newPosition.get(i));
-                }
-            }
-            base.write(int(positions[0]));
-            shoulder.write(int(positions[1]));
-            elbow.write(int(positions[2]));
-            wrist.write(int(positions[3]));
-            wristRotation.write(int(positions[4]));
-            gripper.write(int(positions[5]));
-            delay(STEP_DELAY_MS);
-        }
-        currentPosition = newPosition;
+        action();
+        nextMs += STEP_DELAY_MS;
     }
 }
 
-double _BraccioPT::getMoveDuration(const Position& newPosition, double minTime)
+void _BraccioPT::moveToPosition(const Position& newPosition, float minTime)
 {
-    double actualTimes[6];
-    for (int i = 0; i < 6; i++) {
-        double displacement = abs(newPosition.get(i) - currentPosition.get(i));
+    float time = getMoveDuration(newPosition, minTime);
+    for (int i = 0; i < 6; i++)
+    {
+        float displacement = abs(newPosition.get(i) - currentPosition[i]);
+        targetPosition[i] = newPosition.get(i);
+        currentSpeeds[i] = displacement / time;
+    }
+}
+
+float _BraccioPT::getMoveDuration(const Position& newPosition, float minTime)
+{
+    float actualTimes[6];
+    for (int i = 0; i < 6; i++)
+    {
+        float displacement = abs(newPosition.get(i) - currentPosition[i]);
         int maxSpeed = i >= 3 ? MAXIMUM_SPEED : BIG_JOINT_MAXIMUM_SPEED;
 
         // As fast as possible
@@ -104,7 +93,7 @@ double _BraccioPT::getMoveDuration(const Position& newPosition, double minTime)
 
         if (minTime > 0)
         {
-            double speed = displacement / minTime;
+            float speed = displacement / minTime;
             if (speed <= maxSpeed)
             {
                 // Can complete movement in at least minTime seconds
@@ -113,14 +102,27 @@ double _BraccioPT::getMoveDuration(const Position& newPosition, double minTime)
         }
     }
 
-    double actualTime = 0;
+    float actualTime = 0;
     for (int i = 0; i < 6; i++) {
         actualTime = max(actualTime, actualTimes[i]);
     }
     return actualTime;
 }
 
-void _BraccioPT::softStart() {
+bool _BraccioPT::isMoving()
+{
+    for (int i = 0; i < 6; i++)
+    {
+        if (currentPosition[i] != targetPosition[i])
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void _BraccioPT::softStart()
+{
     long int startTime = millis();
     while (millis() - startTime < SOFT_START_TIME)
     {
@@ -128,5 +130,32 @@ void _BraccioPT::softStart() {
         delayMicroseconds(450);
         digitalWrite(SOFT_START_CONTROL_PIN, HIGH);
         delayMicroseconds(20); 
+    }
+}
+
+void _BraccioPT::action()
+{
+    if (isMoving())
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            float step = currentSpeeds[i] * STEP_DELAY_MS / MS_PER_S;
+            if (currentPosition[i] < targetPosition[i])
+            {
+                currentPosition[i] = min(currentPosition[i] + step, targetPosition[i]);
+            }
+            else if (currentPosition[i] > targetPosition[i])
+            {
+                currentPosition[i] = max(currentPosition[i] - step, targetPosition[i]);
+            }
+        }
+        
+        // Write position to servos
+        base.write(int(currentPosition[0]));
+        shoulder.write(int(currentPosition[1]));
+        elbow.write(int(currentPosition[2]));
+        wrist.write(int(currentPosition[3]));
+        wristRotation.write(int(currentPosition[4]));
+        gripper.write(int(currentPosition[5]));
     }
 }
