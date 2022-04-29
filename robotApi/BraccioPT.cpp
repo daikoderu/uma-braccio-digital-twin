@@ -52,7 +52,6 @@ void _BraccioPT::init(Position& startPosition, bool doSoftStart, unsigned long b
         currentPosition[i] = startPosition.get(i);
         targetPosition[i] = startPosition.get(i);
         currentSpeeds[i] = 0;
-        Serial.print("init!");
     }
     nextMs = 0;
 
