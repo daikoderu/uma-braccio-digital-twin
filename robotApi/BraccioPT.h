@@ -76,7 +76,8 @@ class _BraccioPT
         unsigned long nextMs;
 
         void softStart();
-        void action();
+        void handleMovement(unsigned long ms);
+        void generateSnapshots(unsigned long ms);
         
 };
 

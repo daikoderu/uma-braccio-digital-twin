@@ -15,8 +15,8 @@
     limitations under the License.
 */
 
-#include "BraccioPT.h"
 #include <Arduino.h>
+#include "BraccioPT.h"
 
 Position _BraccioPT::initialPosition(90, 90, 90, 90, 90, 73);
 _BraccioPT BraccioPT;
@@ -62,11 +62,8 @@ void _BraccioPT::init(Position& startPosition, bool doSoftStart, unsigned long b
 
 void _BraccioPT::loop(unsigned long ms)
 {
-    while (ms >= nextMs)
-    {
-        action();
-        nextMs += STEP_DELAY_MS;
-    }
+    handleMovement(ms);
+    generateSnapshots(ms);
 }
 
 void _BraccioPT::moveToPosition(const Position& newPosition, float minTime)
@@ -133,29 +130,41 @@ void _BraccioPT::softStart()
     }
 }
 
-void _BraccioPT::action()
+void _BraccioPT::handleMovement(unsigned long ms)
 {
-    if (isMoving())
+    while (ms >= nextMs)
     {
-        for (int i = 0; i < 6; i++)
+        if (isMoving())
         {
-            float step = currentSpeeds[i] * STEP_DELAY_MS / MS_PER_S;
-            if (currentPosition[i] < targetPosition[i])
+            for (int i = 0; i < 6; i++)
             {
-                currentPosition[i] = min(currentPosition[i] + step, targetPosition[i]);
+                float step = currentSpeeds[i] * STEP_DELAY_MS / MS_PER_S;
+                if (currentPosition[i] < targetPosition[i])
+                {
+                    currentPosition[i] = min(currentPosition[i] + step, targetPosition[i]);
+                }
+                else if (currentPosition[i] > targetPosition[i])
+                {
+                    currentPosition[i] = max(currentPosition[i] - step, targetPosition[i]);
+                }
+                else
+                {
+                    currentSpeeds[i] = 0;
+                }
             }
-            else if (currentPosition[i] > targetPosition[i])
-            {
-                currentPosition[i] = max(currentPosition[i] - step, targetPosition[i]);
-            }
+            
+            // Write position to servos
+            base.write(int(currentPosition[0]));
+            shoulder.write(int(currentPosition[1]));
+            elbow.write(int(currentPosition[2]));
+            wrist.write(int(currentPosition[3]));
+            wristRotation.write(int(currentPosition[4]));
+            gripper.write(int(currentPosition[5]));
         }
-        
-        // Write position to servos
-        base.write(int(currentPosition[0]));
-        shoulder.write(int(currentPosition[1]));
-        elbow.write(int(currentPosition[2]));
-        wrist.write(int(currentPosition[3]));
-        wristRotation.write(int(currentPosition[4]));
-        gripper.write(int(currentPosition[5]));
+        nextMs += STEP_DELAY_MS;
     }
+}
+
+void _BraccioPT::generateSnapshots(unsigned long ms)
+{
 }
