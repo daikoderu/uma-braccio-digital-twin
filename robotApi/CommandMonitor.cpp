@@ -75,7 +75,7 @@ void _CommandMonitor::processCommands(unsigned long ms)
     else
     {
         // Executing a command
-        const char *result = commandHandler(command, BraccioPT);
+        const char *result = commandHandler(command, &BraccioPT);
         if (result != NULL)
         {
             busy = false;

@@ -19,7 +19,7 @@ typedef struct _Command Command;
 
 typedef const char* (*CommandHandler)(
     Command command,
-    _BraccioPT robot
+    _BraccioPT *robot
 );
 
 struct _CommandType

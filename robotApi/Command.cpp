@@ -2,11 +2,11 @@
 #include <BraccioPT.h>
 #include "Command.h"
 
-Position example(50, 90, 90, 90, 0, GRIPPER_OPEN);
+Position example(50, 90, 90, 30, 0, GRIPPER_OPEN);
 
-const char* handleMoveto(Command command, _BraccioPT robot)
+const char* handleMoveto(Command command, _BraccioPT *robot)
 {
-    robot.moveToPosition(example, 0);
+    robot->moveToPosition(example, 0);
     return "ok";
 }
 
