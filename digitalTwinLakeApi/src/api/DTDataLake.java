@@ -25,14 +25,6 @@ public class DTDataLake implements Closeable {
         return jedis.ping().equalsIgnoreCase("PONG");
     }
 
-    public long getCurrentTime() {
-        if (jedis.exists("executionId")) {
-            return Long.parseLong(jedis.get("now"));
-        } else {
-            return 0;
-        }
-    }
-
     public String getCurrentExecutionId() {
         if (jedis.exists("executionId")) {
             return jedis.get("executionId");
@@ -58,15 +50,17 @@ public class DTDataLake implements Closeable {
         }
         String execId = getCurrentExecutionId();
         int commandId = getCommandCounter();
-        String key = "DTCommand:" + twinId + ":" + execId + ":" + commandId;
+        String objectId = twinId + ":" + execId + ":" + commandId;
+
         hash.put("twinId", twinId);
         hash.put("executionId", getCurrentExecutionId());
-        hash.put("timestamp", getCurrentTime() + "");
         hash.put("name", command);
         hash.put("arguments", argJoiner.toString());
         hash.put("commandId", commandId + "");
-        jedis.hset(key, hash);
-        jedis.zadd("DTCommand_UNPROCESSED", commandId, key);
+        jedis.hset("DTCommand:" + objectId, hash);
+        jedis.zadd("DTCommand_UNPROCESSED", commandId, "DTCommand:" + objectId);
+        jedis.hset("PTCommand:" + objectId, hash);
+        jedis.zadd("PTCommand_UNPROCESSED", commandId, "PTCommand:" + objectId);
     }
 
     public void incrCommandCounter() {

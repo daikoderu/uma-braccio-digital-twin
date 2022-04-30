@@ -26,6 +26,8 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     private static final int NUM_EXECUTOR_POOL_THREADS = 3;
     private static final String REDIS_HOSTNAME = "localhost";
     private static final long SLEEP_TIME_MS = 5000;
+    private static final String DL_EXECUTION_ID = "executionId";
+    private static final String DL_COMMAND_COUNTER = "commandCounter";
 
     private JedisPool jedisPool;
     private ExecutorService executor;
@@ -149,8 +151,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     private void initializeModel() {
         try (Jedis jedis = jedisPool.getResource()) {
             setExecutionIds(jedis);
-            jedis.set(DTRedisUtils.DL_NOW, 0 + "");
-            jedis.set(DTRedisUtils.DL_COMMAND_COUNTER, 0 + "");
+            jedis.set(DL_COMMAND_COUNTER, 0 + "");
         } catch (Exception ex) {
             DTLogger.error("Error initializing USE model:", ex);
         }
@@ -161,7 +162,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
         for (MObjectState clock : useApi.getObjectsOfClass("BraccioRobot")) {
             useApi.setAttribute(clock, "executionId", posixTime);
         }
-        jedis.set(DTRedisUtils.DL_EXECUTION_ID, posixTime);
+        jedis.set(DL_EXECUTION_ID, posixTime);
     }
 
 }

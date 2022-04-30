@@ -67,19 +67,17 @@ public abstract class OutputManager {
     public void saveObjectsToDataLake(Jedis jedis) {
         useApi.updateDerivedValues();
         List<MObjectState> unprocessedObjects = getUnprocessedModelObjects();
-        DTRedisUtils redisUtils = new DTRedisUtils(jedis);
         for (MObjectState objstate : unprocessedObjects) {
-            saveOneObject(jedis, redisUtils, objstate);
+            saveOneObject(jedis, objstate);
         }
     }
 
     /**
      * Auxiliary method to store the object in the database, extracted from the diagram.
      * @param jedis An instance of the Jedis client to access the data lake.
-     * @param redisUtils Instance with utility methods to manipulate our data lake.
      * @param objstate The object to store.
      */
-    private void saveOneObject(Jedis jedis, DTRedisUtils redisUtils, MObjectState objstate) {
+    private void saveOneObject(Jedis jedis, MObjectState objstate) {
         Map<String, String> armValues = new HashMap<>();
 
         // Generate the object identifier
@@ -128,9 +126,6 @@ public abstract class OutputManager {
         jedis.zadd(objectType + "_PROCESSED", 0, objectTypeAndId);
         useApi.setAttribute(objstate, IS_PROCESSED, true);
         useApi.setAttribute(objstate, WHEN_PROCESSED, useApi.getCurrentTime());
-
-        // Update the Data Lake's timestamp
-        redisUtils.updateTimestamp(useApi);
 
         // Add registers for other queries
         addObjectQueryRegisters(jedis, objectTypeAndId, armValues);

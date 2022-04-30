@@ -29,7 +29,6 @@ public abstract class InputManager {
      */
     public InputManager(DTUseFacade useApi, String channel, String objectType) {
         attributeSpecification = new AttributeSpecification();
-        attributeSpecification.set(TIMESTAMP, AttributeType.INTEGER);
         this.useApi = useApi;
         this.channel = channel;
         this.objectType = objectType;
@@ -57,19 +56,17 @@ public abstract class InputManager {
      */
     public void saveObjectsToUseModel(Jedis jedis) {
         Set<String> unprocessedCommands = getUnprocessedDLObjects(jedis);
-        DTRedisUtils redisUtils = new DTRedisUtils(jedis);
         for (String key : unprocessedCommands) {
-            saveOneObject(jedis, redisUtils, key);
+            saveOneObject(jedis, key);
         }
     }
 
     /**
      * Auxiliary method to store the object in the USE model, extracted from the Data Lake.
      * @param jedis An instance of the Jedis client to access the data lake.
-     * @param redisUtils Instance with utility methods to manipulate our data lake.
      * @param key The key of the object to store.
      */
-    private void saveOneObject(Jedis jedis, DTRedisUtils redisUtils, String key) {
+    private void saveOneObject(Jedis jedis, String key) {
         Map<String, String> hash = jedis.hgetAll(key);
         try {
             MObjectState objstate = useApi.createObject(
@@ -96,6 +93,9 @@ public abstract class InputManager {
                     useApi.setAttribute(objstate, attr, value);
                 }
             }
+
+            // Save timestamp
+            useApi.setAttribute(objstate, TIMESTAMP, useApi.getCurrentTime());
         } catch (Exception ex) {
             DTLogger.error("Could not create object: " + ex.getMessage());
         }
@@ -105,9 +105,6 @@ public abstract class InputManager {
         jedis.zrem(objectType + "_UNPROCESSED", key);
         jedis.zadd(objectType + "_PROCESSED", score, key);
         DTLogger.info(getChannel(), "Saved input object: " + key);
-
-        // Update the Data Lake's timestamp
-        redisUtils.updateTimestamp(useApi);
 
         // Set whenProcessed to indicate when this instance has been saved to the USE model.
         jedis.hset(key, WHEN_PROCESSED, useApi.getCurrentTime() + "");
