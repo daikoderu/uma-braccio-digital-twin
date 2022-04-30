@@ -64,4 +64,7 @@ class Position
         
 };
 
+extern int minAngles[6];
+extern int maxAngles[6];
+
 #endif

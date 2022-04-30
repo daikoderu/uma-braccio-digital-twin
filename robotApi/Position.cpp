@@ -17,44 +17,47 @@
 #include "Position.h"
 #include "Arduino.h"
 
+int minAngles[6] = {0, 15, 0, 0, 0, 10};
+int maxAngles[6] = {180, 165, 180, 180, 180, 73};
+
 Position&
 Position::setBase(int b)
 {
-    base = limit(b, 0, 180);
+    base = limit(b, minAngles[0], maxAngles[0]);
     return *this;
 }
 
 Position&
 Position::setShoulder(int s) {
-    shoulder = limit(s, 15, 165);
+    shoulder = limit(s, minAngles[1], maxAngles[1]);
     return *this;
 }
 
 Position&
 Position::setElbow(int e)
 {
-    elbow = limit(e, 0, 180);
+    elbow = limit(e, minAngles[2], maxAngles[2]);
     return *this;
 }
 
 Position&
 Position::setWrist(int v)
 {
-    wrist = limit(v, 0, 180);
+    wrist = limit(v, minAngles[3], maxAngles[3]);
     return *this;
 }
 
 Position& 
 Position::setWristRotation(int w)
 {
-    wristRotation = limit(w, 0, 180);
+    wristRotation = limit(w, minAngles[4], maxAngles[4]);
     return *this;
 }
 
 Position&
 Position::setGripper(int g)
 {
-    gripper = limit(g, 10, 73);
+    gripper = limit(g, minAngles[5], maxAngles[5]);
     return *this;
 }
 
