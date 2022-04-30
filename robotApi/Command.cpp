@@ -2,11 +2,19 @@
 #include <BraccioPT.h>
 #include "Command.h"
 
-Position example(50, 90, 90, 30, 0, GRIPPER_OPEN);
-
 const char* handleMoveto(Command command, _BraccioPT *robot)
 {
-    robot->moveToPosition(example, 0);
+    if (command.argc != 7)
+    {
+        return "error";
+    }
+    Position myPosition;
+    for (int i = 1; i <= 6; i++)
+    {
+        long int angle = strtol(command.argv[i], NULL, 10);
+        myPosition.set(i - 1, (int)angle);
+    }
+    robot->moveToPosition(myPosition, 0);
     return "ok";
 }
 
