@@ -25,6 +25,7 @@
 
 #include "Position.h"
 
+#define INIT_TIME_SECONDS 4
 #define SOFT_START_CONTROL_PIN 12
 #define SOFT_START_TIME 1000
 

@@ -35,23 +35,18 @@ void _BraccioPT::init(Position& startPosition, bool doSoftStart, unsigned long b
     wrist.attach(6);
     wristRotation.attach(5);
     gripper.attach(3);
-            
-    base.write(startPosition.getBase());
-    shoulder.write(startPosition.getShoulder());
-    elbow.write(startPosition.getElbow());
-    wrist.write(startPosition.getWrist());
-    wristRotation.write(startPosition.getWristRotation());
-    gripper.write(startPosition.getGripper());
+
+    currentPosition[0] = base.read();
+    currentPosition[1] = shoulder.read();
+    currentPosition[2] = elbow.read();
+    currentPosition[3] = wrist.read();
+    currentPosition[4] = wristRotation.read();
+    currentPosition[5] = gripper.read();
+    moveToPosition(startPosition, INIT_TIME_SECONDS);
 
     if (doSoftStart)
     {
         softStart();
-    }
-    for (int i = 0; i < 6; i++)
-    {
-        currentPosition[i] = startPosition.get(i);
-        targetPosition[i] = startPosition.get(i);
-        currentSpeeds[i] = 0;
     }
     nextMs = 0;
 
