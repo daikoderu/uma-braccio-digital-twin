@@ -55,6 +55,7 @@ void _BraccioPT::init(Position& startPosition, bool doSoftStart, unsigned long b
         softStart();
     }
     nextMs = 0;
+    nextSnapshotMs = 0;
 
     // Initialize serial port
     Serial.begin(baudRate);
@@ -168,4 +169,29 @@ void _BraccioPT::handleMovement(unsigned long ms)
 
 void _BraccioPT::generateSnapshots(unsigned long ms)
 {
+    if (ms >= nextSnapshotMs)
+    {
+        Serial.print("OUT:");
+        Serial.print(ms);
+        Serial.print(':');
+        printPositionArray(currentPosition, 6);
+        Serial.print(':');
+        printPositionArray(targetPosition, 6);
+        Serial.print(':');
+        printPositionArray(currentSpeeds, 6);
+        Serial.println();
+        nextSnapshotMs += SNAPSHOT_PERIOD_MS;
+    }
+}
+
+void _BraccioPT::printPositionArray(float *array, int length)
+{
+    for (int i = 0; i < length; i++)
+    {
+        if (i > 0)
+        {
+            Serial.print(",");
+        }
+        Serial.print(array[i]);
+    }
 }

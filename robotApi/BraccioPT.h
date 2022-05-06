@@ -30,6 +30,7 @@
 
 #define MS_PER_S 1000
 #define STEP_DELAY_MS 10
+#define SNAPSHOT_PERIOD_MS 100
 
 // Maximum speed in degrees per second
 #define MAXIMUM_SPEED 200
@@ -74,10 +75,12 @@ class _BraccioPT
         float targetPosition[6];
         float currentSpeeds[6];
         unsigned long nextMs;
+        unsigned long nextSnapshotMs;
 
         void softStart();
         void handleMovement(unsigned long ms);
         void generateSnapshots(unsigned long ms);
+        void printPositionArray(float *array, int length);
         
 };
 
