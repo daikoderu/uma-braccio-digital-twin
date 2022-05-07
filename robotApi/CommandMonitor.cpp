@@ -67,7 +67,7 @@ void _CommandMonitor::processCommands(unsigned long ms)
                 }
                 else
                 {
-                    Serial.println("invalid command");
+                    Serial.println("RET:invalid-command");
                 }
             }
         }
