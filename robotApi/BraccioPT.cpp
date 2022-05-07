@@ -134,7 +134,7 @@ void _BraccioPT::softStart()
 
 void _BraccioPT::handleMovement(unsigned long ms)
 {
-    while (ms >= nextMs)
+    if (ms >= nextMs)
     {
         if (isMoving())
         {
@@ -163,7 +163,7 @@ void _BraccioPT::handleMovement(unsigned long ms)
             wristRotation.write(int(currentPosition[4]));
             gripper.write(int(currentPosition[5]));
         }
-        nextMs += STEP_DELAY_MS;
+        nextMs = ms + STEP_DELAY_MS;
     }
 }
 
