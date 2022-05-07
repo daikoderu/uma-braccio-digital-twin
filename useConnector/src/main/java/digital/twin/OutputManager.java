@@ -123,7 +123,7 @@ public abstract class OutputManager {
         DTLogger.info(getChannel(), "Saved output object: " + objectTypeAndId);
 
         // Mark object as processed
-        jedis.zadd(objectType + "_PROCESSED", 0, objectTypeAndId);
+        jedis.zadd(objectType + "_PROCESSED", getObjectScore(objstate), objectTypeAndId);
         useApi.setAttribute(objstate, IS_PROCESSED, true);
         useApi.setAttribute(objstate, WHEN_PROCESSED, useApi.getCurrentTime());
 
@@ -157,6 +157,14 @@ public abstract class OutputManager {
      * @return The identifier for the object.
      */
     protected abstract String getObjectId(MObjectState objstate);
+
+    /**
+     * Returns the score to use for an object to be stored in the data lake. Used to update
+     * the processed object set.
+     * @param objstate The object state to return the score from.
+     * @return The score for the object.
+     */
+    protected abstract double getObjectScore(MObjectState objstate);
 
     /**
      * Converts an USE collection value to an array of values.

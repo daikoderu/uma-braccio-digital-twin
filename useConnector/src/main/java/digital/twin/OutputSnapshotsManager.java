@@ -38,6 +38,10 @@ public class OutputSnapshotsManager extends OutputManager {
         return twinId + ":" + executionId + ":" + timestamp;
     }
 
+    protected double getObjectScore(MObjectState objstate) {
+        return useApi.getIntegerAttribute(objstate, "timestamp");
+    }
+
     protected void addObjectQueryRegisters(
             Jedis jedis, String objectTypeAndId, Map<String, String> values) { }
 

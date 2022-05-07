@@ -30,6 +30,10 @@ public class CommandResultManager extends OutputManager {
         return twinId + ":" + executionId + ":" + commandId;
     }
 
+    protected double getObjectScore(MObjectState objstate) {
+        return useApi.getIntegerAttribute(objstate, "commandId");
+    }
+
     protected void addObjectQueryRegisters(
             Jedis jedis, String objectTypeAndId, Map<String, String> values) { }
 
