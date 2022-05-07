@@ -61,17 +61,25 @@ def setup():
             "success": False,
             "error": "Goodbye!"
         }
+    except redis.exceptions.ConnectionError as ex:
+        return {
+            "success": False,
+            "error": f"Error when connecting to the Data Lake: {ex}"
+        }
 
 def main():
     setup_result = setup()
     if (setup_result["success"]):
         robot, dl = setup_result["robot"], setup_result["dl"]
+        twin_id, execution_id = setup_result["twinId"], setup_result["executionId"]
         status = {
-            "twinId": setup_result["twinId"],
-            "executionId": setup_result["executionId"],
+            "twinId": twin_id,
+            "executionId": execution_id,
+            "timestamp": 0,
             "quit": False,
             "command": None
         }
+        print(f"PTDriver connected. Execution ID: {execution_id}")
         input_thread = Thread(target=input_handler, name="InputThread", args=(robot, dl, status))
         output_thread = Thread(target=output_handler, name="OutputThread", args=(robot, dl, status))
 
@@ -83,7 +91,7 @@ def main():
                 time.sleep(10000)
         except KeyboardInterrupt:
             status["quit"] = True
-            print("Goodbye!")
+            print("Quitting...")
             return 0
     else:
         print(setup_result["error"])
