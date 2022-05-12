@@ -49,8 +49,4 @@ reset
 !insert (commandMonitor, robot) into Monitoring
 !insert (ck, commandMonitor) into Time
 
-!new CommandGenerator('generator')
-!insert (generator, robot) into CommandGeneration
-!insert (ck, generator) into Time
-
 check
