@@ -5,10 +5,7 @@ import org.tzi.use.api.UseSystemApi;
 import org.tzi.use.runtime.gui.IPluginAction;
 import org.tzi.use.runtime.gui.IPluginActionDelegate;
 import org.tzi.use.uml.sys.MObjectState;
-import pubsub.DTPubSub;
-import pubsub.InPubService;
-import pubsub.OutPubService;
-import pubsub.SubService;
+import pubsub.*;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -23,9 +20,10 @@ import java.util.concurrent.Executors;
  */
 public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
 
-    private static final int NUM_EXECUTOR_POOL_THREADS = 3;
+    public static final long SLEEP_TIME_MS = 200;
+
+    private static final int NUM_EXECUTOR_POOL_THREADS = 5;
     private static final String REDIS_HOSTNAME = "localhost";
-    private static final long SLEEP_TIME_MS = 5000;
     private static final String DL_EXECUTION_ID = "executionId";
     private static final String DL_COMMAND_COUNTER = "commandCounter";
 
@@ -35,6 +33,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     private OutPubService outPublisher;
     private OutPubService commandOutPublisher;
     private InPubService commandInPublisher;
+    private TimePubService timePublisher;
     private DTUseFacade useApi;
 
     /**
@@ -64,7 +63,9 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
      */
     private void connect(IPluginAction pluginAction) {
         setApi(pluginAction);
-        jedisPool = new JedisPool(new JedisPoolConfig(), REDIS_HOSTNAME);
+        JedisPoolConfig poolConfig = new JedisPoolConfig();
+        poolConfig.setMaxTotal(20);
+        jedisPool = new JedisPool(poolConfig, REDIS_HOSTNAME);
         if (checkConnectionWithDatabase()) {
 
             // Initialize USE model
@@ -72,15 +73,17 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
 
             // Create publishing services
             outPublisher = new OutPubService(DTPubSub.DT_OUT_CHANNEL, jedisPool,
-                    SLEEP_TIME_MS, new OutputSnapshotsManager(useApi));
+                    new OutputSnapshotsManager(useApi));
             commandOutPublisher = new OutPubService(DTPubSub.COMMAND_OUT_CHANNEL, jedisPool,
-                    SLEEP_TIME_MS, new CommandResultManager(useApi));
+                    new CommandResultManager(useApi));
             commandInPublisher = new InPubService(DTPubSub.COMMAND_IN_CHANNEL, jedisPool,
-                    SLEEP_TIME_MS, new CommandManager(useApi));
+                    new CommandManager(useApi));
+            timePublisher = new TimePubService(DTPubSub.TIME_CHANNEL, jedisPool, useApi);
             ensureThreadPool();
             executor.submit(outPublisher);
             executor.submit(commandOutPublisher);
             executor.submit(commandInPublisher);
+            executor.submit(timePublisher);
 
             // Create subscribing threads
             Thread outChannelThread = new Thread(
@@ -92,9 +95,13 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
             Thread commandInChannelThread = new Thread(
                     new SubService(useApi, jedisPool, DTPubSub.COMMAND_IN_CHANNEL),
                     DTPubSub.COMMAND_IN_CHANNEL + " subscriber thread");
+            Thread timeChannelThread = new Thread(
+                    new SubService(useApi, jedisPool, DTPubSub.TIME_CHANNEL),
+                    DTPubSub.TIME_CHANNEL + " subscriber thread");
             outChannelThread.start();
             commandOutChannelThread.start();
             commandInChannelThread.start();
+            timeChannelThread.start();
 
             connectionIsActive = true;
         }
@@ -107,6 +114,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
         outPublisher.stop();
         commandOutPublisher.stop();
         commandInPublisher.stop();
+        timePublisher.stop();
         connectionIsActive = false;
         DTLogger.info("Connection ended successfully");
     }
@@ -151,7 +159,8 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     private void initializeModel() {
         try (Jedis jedis = jedisPool.getResource()) {
             setExecutionIds(jedis);
-            jedis.set(DL_COMMAND_COUNTER, 0 + "");
+            jedis.set(TimePubService.DL_NOW, "0");
+            jedis.set(DL_COMMAND_COUNTER, "0");
         } catch (Exception ex) {
             DTLogger.error("Error initializing USE model:", ex);
         }

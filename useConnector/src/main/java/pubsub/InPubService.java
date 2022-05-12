@@ -1,6 +1,7 @@
 package pubsub;
 
 import digital.twin.InputManager;
+import plugin.DigitalTwinPluginDelegate;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import utils.DTLogger;
@@ -13,8 +14,6 @@ import utils.DTLogger;
 public class InPubService extends PubService {
 
     private final JedisPool jedisPool;
-    private final long sleepTime;
-    private boolean running;
     private final InputManager input;
 
     /**
@@ -24,39 +23,24 @@ public class InPubService extends PubService {
      * @param sleepTime Milliseconds between each check in the database
      * @param inputManager Manager to use to check for Data Lake objects.
      */
-    public InPubService(String channel, JedisPool jedisPool, long sleepTime, InputManager inputManager) {
-        super(channel);
+    public InPubService(String channel, JedisPool jedisPool, InputManager inputManager) {
+        super(channel, DigitalTwinPluginDelegate.SLEEP_TIME_MS);
         this.jedisPool = jedisPool;
-        this.sleepTime = sleepTime;
         this.input = inputManager;
-        running = true;
     }
 
     /**
      * Checks periodically if there are new input objects in the Data Lake.
      */
-    public void run() {
-        while (running) {
-            // Wait some time
-            busyWait(sleepTime);
-
-            // Check for new objects
-            try (Jedis jedis = jedisPool.getResource()) {
-                if (!input.getUnprocessedDLObjects(jedis).isEmpty()) {
-                    jedis.publish(getChannel(), "New Information");
-                    DTLogger.info(this, "New Information");
-                }
-            } catch (Exception ex) {
-                DTLogger.error("An error ocurred:", ex);
+    public void action() {
+        try (Jedis jedis = jedisPool.getResource()) {
+            if (!input.getUnprocessedDLObjects(jedis).isEmpty()) {
+                jedis.publish(getChannel(), "New Information");
+                DTLogger.info(this, "New Information");
             }
+        } catch (Exception ex) {
+            DTLogger.error("An error ocurred:", ex);
         }
-    }
-
-    /**
-     * Stops the periodic search for new snapshots.
-     */
-    public void stop() {
-        running = false;
     }
 
 }

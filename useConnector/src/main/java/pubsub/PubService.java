@@ -9,16 +9,31 @@ import utils.DTLogger;
 public abstract class PubService implements Runnable {
 
 	private final String channel;
+	private final long sleepTime;
+	private boolean running;
 	
-	public PubService(String channel) {
+	public PubService(String channel, long sleepTime) {
 		this.channel = channel;
+		this.sleepTime = sleepTime;
+		running = true;
 	}
 
 	public String getChannel() {
 		return channel;
 	}
-	
-	public abstract void stop();
+
+	public void run() {
+		while (running) {
+			busyWait(sleepTime);
+			action();
+		}
+	}
+
+	public void stop() {
+		running = false;
+	}
+
+	protected abstract void action();
 
 	protected void busyWait(long millis) {
 		try {

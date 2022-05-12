@@ -3,9 +3,16 @@ package utils;
 import org.tzi.use.api.UseSystemApi;
 import org.tzi.use.uml.mm.MAttribute;
 import org.tzi.use.uml.mm.MClass;
+import org.tzi.use.uml.mm.MOperation;
+import org.tzi.use.uml.ocl.expr.ExpObjRef;
+import org.tzi.use.uml.ocl.expr.Expression;
+import org.tzi.use.uml.ocl.expr.ExpressionWithValue;
 import org.tzi.use.uml.ocl.type.Type;
 import org.tzi.use.uml.ocl.value.*;
 import org.tzi.use.uml.sys.*;
+import org.tzi.use.uml.sys.soil.MObjectOperationCallStatement;
+import org.tzi.use.uml.sys.soil.MOperationCallStatement;
+import org.tzi.use.uml.sys.soil.MStatement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -190,6 +197,23 @@ public class UseFacade {
         MClass mclass = objstate.object().cls();
         MAttribute attribute = mclass.attribute(attributeName, true);
         objstate.setAttributeValue(attribute, value);
+    }
+
+    // Operation calls
+    // ============================================================================================
+
+    public void callOperation(MObjectState objstate, String operationName, Object[] args)
+            throws MSystemException {
+        MObject mobject = objstate.object();
+        MClass mclass = mobject.cls();
+        MOperation operation = mclass.operation(operationName, true);
+        Expression[] useArgs = new Expression[args.length];
+        for (int i = 0; i < args.length; i++) {
+            useArgs[i] = new ExpressionWithValue(objectToUseValue(args[i]));
+        }
+        MStatement stmt = new MObjectOperationCallStatement(
+                new ExpObjRef(mobject), operation, useArgs);
+        api.getSystem().execute(stmt);
     }
 
 }

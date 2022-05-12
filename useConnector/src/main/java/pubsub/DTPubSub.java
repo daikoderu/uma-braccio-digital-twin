@@ -17,11 +17,13 @@ public class DTPubSub extends JedisPubSub {
     public static final String DT_OUT_CHANNEL = "DTOutChannel";
     public static final String COMMAND_OUT_CHANNEL = "CommandOutChannel";
     public static final String COMMAND_IN_CHANNEL = "CommandInChannel";
+    public static final String TIME_CHANNEL = "TimeChannel";
 
     private final Jedis jedis;
     private final OutputSnapshotsManager dtOutSnapshotsManager;
     private final CommandManager commandManager;
     private final CommandResultManager commandResultManager;
+    private final DTUseFacade useApi;
 
     /**
      * Default constructor.
@@ -33,6 +35,7 @@ public class DTPubSub extends JedisPubSub {
         dtOutSnapshotsManager = new OutputSnapshotsManager(useApi);
         commandManager = new CommandManager(useApi);
         commandResultManager = new CommandResultManager(useApi);
+        this.useApi = useApi;
     }
 
     /**
@@ -66,6 +69,18 @@ public class DTPubSub extends JedisPubSub {
                 try {
                     commandResultManager.saveObjectsToDataLake(jedis);
                     DTLogger.info("New Command Results saved");
+                } catch (Exception ex) {
+                    DTLogger.error("An error ocurred:", ex);
+                }
+                break;
+
+            case TIME_CHANNEL: // Update USE model's timestamp
+                try {
+                    int dlTime = TimePubService.getRedisTimestamp(jedis);
+                    while (dlTime >= useApi.getCurrentTime() + TimePubService.RESOLUTION_MS) {
+                        useApi.tick();
+                    }
+                    DTLogger.info("Current time: " + dlTime);
                 } catch (Exception ex) {
                     DTLogger.error("An error ocurred:", ex);
                 }

@@ -2,6 +2,7 @@ package digital.twin;
 
 import org.tzi.use.api.UseSystemApi;
 import org.tzi.use.uml.sys.MObjectState;
+import org.tzi.use.uml.sys.MSystemException;
 import utils.UseFacade;
 
 import java.util.Objects;
@@ -27,6 +28,11 @@ public class DTUseFacade extends UseFacade {
     public int getCurrentTime() {
         MObjectState clock = Objects.requireNonNull(getAnyObjectOfClass("Clock"));
         return getIntegerAttribute(clock, "now");
+    }
+
+    public void tick() throws MSystemException {
+        MObjectState clock = Objects.requireNonNull(getAnyObjectOfClass("Clock"));
+        callOperation(clock, "tick", new Object[0]);
     }
 
 }
