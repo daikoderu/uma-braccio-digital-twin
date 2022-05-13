@@ -20,9 +20,9 @@ import java.util.concurrent.Executors;
  */
 public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
 
-    public static final long SLEEP_TIME_MS = 200;
+    public static final long SLEEP_TIME_MS = 5000;
 
-    private static final int NUM_EXECUTOR_POOL_THREADS = 5;
+    private static final int NUM_EXECUTOR_POOL_THREADS = 10;
     private static final String REDIS_HOSTNAME = "localhost";
     private static final String DL_EXECUTION_ID = "executionId";
     private static final String DL_COMMAND_COUNTER = "commandCounter";

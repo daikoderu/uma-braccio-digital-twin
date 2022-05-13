@@ -8,7 +8,7 @@ import utils.DTLogger;
 public class TimePubService extends PubService {
 
     public static final String DL_NOW = "now";
-    public static final int RESOLUTION_MS = 20;
+    public static final int RESOLUTION_MS = 100;
 
     private final JedisPool jedisPool;
     private final DTUseFacade useApi;
