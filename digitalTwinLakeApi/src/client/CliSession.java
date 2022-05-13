@@ -1,5 +1,6 @@
 package client;
 
+import api.AutoTicker;
 import api.DTDLConnection;
 import api.DTDataLake;
 import org.javatuples.Pair;
@@ -69,22 +70,37 @@ public class CliSession {
     private int runShell() {
         boolean quit = false;
         String[] tokens;
+
+        // Create auto-ticker
+        AutoTicker ticker = new AutoTicker(connection);
+        Thread tickerThread = new Thread(ticker);
+        tickerThread.start();
+
         while (!quit) {
             out.print(twinId + ":" + executionId + "> ");
             do {
                 tokens = prompt();
             } while (tokens.length == 0 || tokens[0].isEmpty());
 
-            if ("quit".equals(tokens[0])) {
-                quit = true;
-            } else {
-                String[] args = new String[tokens.length - 1];
-                System.arraycopy(tokens, 1, args, 0, tokens.length - 1);
-                try (DTDataLake dl = connection.getResource()) {
-                    dl.putCommand(twinId, tokens[0], args);
-                } catch (Exception ex) {
-                    err.println("An error ocurred:");
-                    ex.printStackTrace();
+            switch (tokens[0]) {
+                case "quit" -> {
+                    ticker.stop();
+                    try {
+                        tickerThread.join();
+                    } catch (InterruptedException ignored) { }
+                    quit = true;
+                }
+                case "play" -> ticker.play();
+                case "pause" -> ticker.pause();
+                default -> {
+                    String[] args = new String[tokens.length - 1];
+                    System.arraycopy(tokens, 1, args, 0, tokens.length - 1);
+                    try (DTDataLake dl = connection.getResource()) {
+                        dl.putCommand(twinId, tokens[0], args);
+                    } catch (Exception ex) {
+                        err.println("An error ocurred:");
+                        ex.printStackTrace();
+                    }
                 }
             }
         }
