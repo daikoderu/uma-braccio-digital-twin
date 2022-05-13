@@ -66,7 +66,7 @@ public abstract class InputManager {
      * @param jedis An instance of the Jedis client to access the data lake.
      * @param key The key of the object to store.
      */
-    private void saveOneObject(Jedis jedis, String key) {
+    private synchronized void saveOneObject(Jedis jedis, String key) {
         Map<String, String> hash = jedis.hgetAll(key);
         try {
             MObjectState objstate = useApi.createObject(

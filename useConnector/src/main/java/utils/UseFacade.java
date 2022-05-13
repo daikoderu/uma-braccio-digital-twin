@@ -41,7 +41,8 @@ public class UseFacade {
     // Object Creation
     // ============================================================================================
 
-    public MObjectState createObject(String className, String objectName) throws MSystemException {
+    public synchronized MObjectState createObject(String className, String objectName)
+            throws MSystemException {
         MClass mclass = api.getSystem().model().getClass(className);
         MSystemState state = api.getSystem().state();
         return state.createObject(mclass, objectName).state(state);
@@ -55,7 +56,7 @@ public class UseFacade {
      * @param className The name of the class whose instances to retrieve.
      * @return A list with all objects of the specified class.
      */
-    public List<MObjectState> getObjectsOfClass(String className) {
+    public synchronized List<MObjectState> getObjectsOfClass(String className) {
         List<MObjectState> result = new ArrayList<>();
         MClass mclass = api.getSystem().model().getClass(className);
         for (MObject o : api.getSystem().state().allObjects()) {
@@ -72,7 +73,7 @@ public class UseFacade {
      * @param className The name of the class whose instance to retrieve.
      * @return An instance of the given class, or null if no instances are found.
      */
-    public MObjectState getAnyObjectOfClass(String className) {
+    public synchronized MObjectState getAnyObjectOfClass(String className) {
         MObjectState result = null;
         MClass mclass = api.getSystem().model().getClass(className);
         for (MObject o : api.getSystem().state().allObjects()) {
@@ -93,7 +94,7 @@ public class UseFacade {
      * @param attributeName The name of the attribute to retrieve.
      * @return The value of the attribute, or null if the value is not an integer.
      */
-    public Integer getIntegerAttribute(MObjectState objstate, String attributeName) {
+    public synchronized Integer getIntegerAttribute(MObjectState objstate, String attributeName) {
         Value v = objstate.attributeValue(attributeName);
         return v instanceof IntegerValue ? ((IntegerValue) v).value() : null;
     }
@@ -104,7 +105,7 @@ public class UseFacade {
      * @param attributeName The name of the attribute to retrieve.
      * @return The value of the attribute, or null if the value is not a real number.
      */
-    public Double getRealAttribute(MObjectState objstate, String attributeName) {
+    public synchronized Double getRealAttribute(MObjectState objstate, String attributeName) {
         Value v = objstate.attributeValue(attributeName);
         return v instanceof RealValue ? ((RealValue) v).value() : null;
     }
@@ -115,7 +116,7 @@ public class UseFacade {
      * @param attributeName The name of the attribute to retrieve.
      * @return The value of the attribute, or null if the value is not a string.
      */
-    public String getStringAttribute(MObjectState objstate, String attributeName) {
+    public synchronized String getStringAttribute(MObjectState objstate, String attributeName) {
         Value v = objstate.attributeValue(attributeName);
         return v instanceof StringValue ? ((StringValue) v).value() : null;
     }
@@ -126,7 +127,7 @@ public class UseFacade {
      * @param attributeName The name of the attribute to retrieve.
      * @return The value of the attribute, or null if the value is not a boolean value.
      */
-    public Boolean getBooleanAttribute(MObjectState objstate, String attributeName) {
+    public synchronized Boolean getBooleanAttribute(MObjectState objstate, String attributeName) {
         Value v = objstate.attributeValue(attributeName);
         return v instanceof BooleanValue ? ((BooleanValue) v).value() : null;
     }
@@ -137,7 +138,7 @@ public class UseFacade {
      * @param attributeName The name of the attribute to retrieve.
      * @return The value of the attribute.
      */
-    public String getAttributeAsString(MObjectState objstate, String attributeName) {
+    public synchronized String getAttributeAsString(MObjectState objstate, String attributeName) {
         return objstate.attributeValue(attributeName).toString();
     }
 
@@ -150,7 +151,7 @@ public class UseFacade {
      * @param attributeName The name of the attribute to set.
      * @param value The value to set.
      */
-    public void setAttribute(MObjectState objstate, String attributeName, Object value) {
+    public synchronized void setAttribute(MObjectState objstate, String attributeName, Object value) {
         setAttributeAux(objstate, attributeName, objectToUseValue(value));
     }
 
@@ -202,7 +203,7 @@ public class UseFacade {
     // Operation calls
     // ============================================================================================
 
-    public void callOperation(MObjectState objstate, String operationName, Object[] args)
+    public synchronized void callOperation(MObjectState objstate, String operationName, Object[] args)
             throws MSystemException {
         MObject mobject = objstate.object();
         MClass mclass = mobject.cls();

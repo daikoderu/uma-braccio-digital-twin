@@ -77,7 +77,7 @@ public abstract class OutputManager {
      * @param jedis An instance of the Jedis client to access the data lake.
      * @param objstate The object to store.
      */
-    private void saveOneObject(Jedis jedis, MObjectState objstate) {
+    private synchronized void saveOneObject(Jedis jedis, MObjectState objstate) {
         Map<String, String> armValues = new HashMap<>();
 
         // Generate the object identifier
