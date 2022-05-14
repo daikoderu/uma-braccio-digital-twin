@@ -28,7 +28,7 @@ def handle_output_snapshot(snapshot: str, dl: Redis, status: dict):
         # Save to the Data Lake
         key = f"PTOutputSnapshot:{twin_id}:{executionId}:{timestamp}"
         dl.hset(key, mapping=hash)
-        dl.zadd("PTOutputSnapshot_PROCESSED", {key: 0})
+        dl.zadd("PTOutputSnapshot_PROCESSED", {key: timestamp})
         print(f"Saved output object: {key}")
     except Exception as ex:
         print(f"Error saving output snapshot: {ex}")
@@ -53,7 +53,7 @@ def handle_command_result(result: str, dl: Redis, status: dict):
         # Save to the Data Lake
         key = f"PTCommandResult:{twin_id}:{executionId}:{command_id}"
         dl.hset(key, mapping=hash)
-        dl.zadd("PTCommandResult_PROCESSED", {key: 0})
+        dl.zadd("PTCommandResult_PROCESSED", {key: command_id})
         print(f"Saved output object: {key}")
 
         # Unset current command
@@ -68,11 +68,10 @@ def output_handler(robot: Braccio, dl: Redis, status: dict):
             try:
                 out = robot.read()
                 if out:
-                    print(f"OUT >> {out}")
-                    if out.startswith("OUT:"):
+                    if out.startswith("OUT "):
                         # This is an output snapshot
                         handle_output_snapshot(out[4:], dl, status)
-                    elif out.startswith("RET:"):
+                    elif out.startswith("RET "):
                         # This is a command result
                         handle_command_result(out[4:], dl, status)
             except:

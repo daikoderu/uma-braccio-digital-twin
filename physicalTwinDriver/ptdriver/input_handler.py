@@ -5,7 +5,7 @@ from .braccio import Braccio
 from .utils import decode_dict
 
 
-sleep_time_in_seconds = 5
+sleep_time_in_millis = 100
 
 
 def next_command(dl: Redis):
@@ -15,20 +15,16 @@ def next_command(dl: Redis):
     else:
         return None
 
-
-def input_handler(robot: Braccio, dl: Redis, status: dict):
-    while not status["quit"]:
-
-        command_key = None
-        if not status["command"]:
-            command_key = next_command(dl)
-
+    
+def send_commands(robot: Braccio, dl: Redis, status: dict):
+    if not status["command"]:
+        command_key = next_command(dl)
         if command_key:
+            # New command received from the Data Lake
             command = decode_dict(dl.hgetall(command_key))
             if status["twinId"] == command["twinId"]:
                 name, args, command_id = command["name"], command["arguments"], command["commandId"]
-                command_line = f"{name} {args}"
-                print(f"IN  << {command_line}")
+                command_line = f"COM {name} {args}"
                 robot.write(command_line)
                 status["command"] = command
                 command["whenProcessed"] = status["timestamp"]
@@ -39,5 +35,17 @@ def input_handler(robot: Braccio, dl: Redis, status: dict):
                 dl.hset(command_key, mapping=command)
             else:
                 pass  # This command is not for this twin
-        else:
-            time.sleep(sleep_time_in_seconds)
+
+
+def send_ticks(robot: Braccio, dl: Redis, status: dict):
+    dl_time = int(dl.get("now"))
+    pt_time = status["timestamp"]
+    if dl_time >= pt_time + sleep_time_in_millis:
+        status["timestamp"] += sleep_time_in_millis
+        robot.write("TICK")
+
+def input_handler(robot: Braccio, dl: Redis, status: dict):
+    while not status["quit"]:
+        send_commands(robot, dl, status)
+        send_ticks(robot, dl, status)
+        time.sleep(sleep_time_in_millis / 1000)

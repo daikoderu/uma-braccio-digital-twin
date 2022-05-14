@@ -24,6 +24,7 @@
 #endif
 
 #include "Position.h"
+#include "SerialInput.h"
 
 #define SOFT_START_CONTROL_PIN 12
 #define SOFT_START_TIME 1000
@@ -52,7 +53,7 @@ class _BraccioPT
             unsigned long baudRate = 115200);
 
         // Function to be called in the Arduino loop() function, taking the current value of millis()
-        void loop(unsigned long ms);
+        void loop();
 
         // Sets a target position in at least minTime seconds.
         void moveToPosition(const Position& newPosition, float minTime);
@@ -62,6 +63,9 @@ class _BraccioPT
 
         // Returns true if the robot is moving right now.
         bool isMoving();
+
+        // Gets the current time for this robot
+        inline unsigned long getNow() const { return now; }
 
     private:
 
@@ -76,10 +80,12 @@ class _BraccioPT
         float currentSpeeds[6];
         unsigned long nextMs;
         unsigned long nextSnapshotMs;
+        unsigned long now;
 
         void softStart();
-        void handleMovement(unsigned long ms);
-        void generateSnapshots(unsigned long ms);
+        void handleTime();
+        void handleMovement();
+        void generateSnapshots();
         void printPositionArray(float *array, int length);
         
 };

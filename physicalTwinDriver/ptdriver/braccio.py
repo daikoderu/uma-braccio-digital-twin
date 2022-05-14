@@ -8,7 +8,12 @@ class Braccio:
         time.sleep(3)
 
     def write(self, string: str):
+        if string:
+            print(f"<< {string}")
         self.port.write(string.encode())
 
     def read(self) -> str:
-        return self.port.readline().decode().strip()
+        string = self.port.readline().decode().strip()
+        if string:
+            print(f">> {string}")
+        return string

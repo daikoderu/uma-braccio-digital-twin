@@ -16,6 +16,7 @@
 */
 
 #include <Arduino.h>
+#include <string.h>
 #include "BraccioPT.h"
 
 Position _BraccioPT::initialPosition(90, 90, 90, 90, 90, 73);
@@ -56,16 +57,18 @@ void _BraccioPT::init(Position& startPosition, bool doSoftStart, unsigned long b
     }
     nextMs = 0;
     nextSnapshotMs = 0;
+    now = 0;
 
     // Initialize serial port
     Serial.begin(baudRate);
 
 }
 
-void _BraccioPT::loop(unsigned long ms)
+void _BraccioPT::loop()
 {
-    handleMovement(ms);
-    generateSnapshots(ms);
+    handleTime();
+    handleMovement();
+    generateSnapshots();
 }
 
 void _BraccioPT::moveToPosition(const Position& newPosition, float minTime)
@@ -132,9 +135,20 @@ void _BraccioPT::softStart()
     }
 }
 
-void _BraccioPT::handleMovement(unsigned long ms)
+void _BraccioPT::handleTime()
 {
-    if (ms >= nextMs)
+    if (SerialInput.available() && SerialInput.getArgumentCount() == 1
+            && !strcmp("TICK", SerialInput.getArgument(0)))
+    {
+        now += STEP_DELAY_MS;
+        delay(STEP_DELAY_MS);
+        SerialInput.consume();
+    }
+}
+
+void _BraccioPT::handleMovement()
+{
+    if (now >= nextMs)
     {
         if (isMoving())
         {
@@ -163,16 +177,16 @@ void _BraccioPT::handleMovement(unsigned long ms)
             wristRotation.write(int(currentPosition[4]));
             gripper.write(int(currentPosition[5]));
         }
-        nextMs = ms + STEP_DELAY_MS;
+        nextMs = now + STEP_DELAY_MS;
     }
 }
 
-void _BraccioPT::generateSnapshots(unsigned long ms)
+void _BraccioPT::generateSnapshots()
 {
-    if (ms >= nextSnapshotMs)
+    if (now >= nextSnapshotMs)
     {
-        Serial.print("OUT:");
-        Serial.print(ms);
+        Serial.print("OUT ");
+        Serial.print(now);
         Serial.print(':');
         printPositionArray(currentPosition, 6);
         Serial.print(':');

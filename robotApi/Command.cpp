@@ -1,10 +1,9 @@
 #include <Arduino.h>
-#include "BraccioPT.h"
 #include "Command.h"
 
-const char* handleMoveto(Command command, _BraccioPT *robot)
+const char* handleMoveto(_SerialInput *input, _BraccioPT *robot)
 {
-    if (command.argc != 7)
+    if (input->getArgumentCount() != 8)
     {
         return "error";
     }
@@ -12,7 +11,7 @@ const char* handleMoveto(Command command, _BraccioPT *robot)
     for (int i = 0; i < 6; i++)
     {
         char *err;
-        long int angle = strtol(command.argv[i + 1], &err, 10);
+        long int angle = strtol(input->getArgument(i + 2), &err, 10);
         if (*err || angle < minAngles[i] || angle > maxAngles[i])
         {
             return "error";

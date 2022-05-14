@@ -1,24 +1,12 @@
 #include <Arduino.h>
 #include "BraccioPT.h"
+#include "SerialInput.h"
 
 #ifndef COMMAND_H
 #define COMMAND_H
 
-#define COMMAND_BUFFER_SIZE 64
-#define MAX_ARGS 8
-
-struct _Command
-{
-    char buffer[COMMAND_BUFFER_SIZE];
-    size_t commandSize;
-    char *argv[MAX_ARGS];
-    size_t argc;
-    char *result;
-};
-typedef struct _Command Command;
-
 typedef const char* (*CommandHandler)(
-    Command command,
+    _SerialInput *input,
     _BraccioPT *robot
 );
 

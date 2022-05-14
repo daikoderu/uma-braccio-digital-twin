@@ -1,5 +1,6 @@
-#include <BraccioPT.h>
+#include <SerialInput.h>
 #include <CommandMonitor.h>
+#include <BraccioPT.h>
 
 void setup()
 {
@@ -8,7 +9,7 @@ void setup()
 
 void loop()
 {
-    unsigned long ms = millis();
-    CommandMonitor.loop(ms);
-    BraccioPT.loop(ms);
+    SerialInput.loop();
+    CommandMonitor.loop();
+    BraccioPT.loop();
 }
