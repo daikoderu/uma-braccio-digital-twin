@@ -24,8 +24,7 @@ def send_commands(robot: Braccio, dl: Redis, status: dict):
             command = decode_dict(dl.hgetall(command_key))
             if status["twinId"] == command["twinId"]:
                 name, args, command_id = command["name"], command["arguments"], command["commandId"]
-                command_line = f"COM {name} {args}"
-                robot.write(command_line)
+                robot.write(f"COM {name} {args}")
                 status["command"] = command
                 command["whenProcessed"] = status["timestamp"]
 

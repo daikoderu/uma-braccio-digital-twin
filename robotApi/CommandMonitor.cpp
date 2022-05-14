@@ -18,7 +18,8 @@ void _CommandMonitor::processCommands()
     if (!busy)
     {
         // Find the appropiate handler
-        if (SerialInput.getLength() >= 2 && !strcmp("COM", SerialInput.getArgument(0)))
+        if (SerialInput.available() && SerialInput.getLength() >= 2
+                && !strcmp("COM", SerialInput.getArgument(0)))
         {
             commandHandler = NULL;
             {
@@ -45,6 +46,7 @@ void _CommandMonitor::processCommands()
             {
                 Serial.println("RET invalid-command");
             }
+            SerialInput.consume();
         }
     }
     else

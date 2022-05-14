@@ -38,26 +38,29 @@ def handle_command_result(result: str, dl: Redis, status: dict):
     try:
         twin_id, executionId = status["twinId"], status["executionId"]
         command = status["command"]
-        command_id = command["commandId"]
-        hash = {
-            "twinId": twin_id,
-            "executionId": executionId,
-            "timestamp": status["timestamp"],
-            "commandId": command_id,
-            "commandName": command["name"],
-            "commandArguments": command["arguments"],
-            "commandTimestamp": command["whenProcessed"],
-            "return": result
-        }
+        if command is not None:
+            command_id = command["commandId"]
+            hash = {
+                "twinId": twin_id,
+                "executionId": executionId,
+                "timestamp": status["timestamp"],
+                "commandId": command_id,
+                "commandName": command["name"],
+                "commandArguments": command["arguments"],
+                "commandTimestamp": command["whenProcessed"],
+                "return": result
+            }
 
-        # Save to the Data Lake
-        key = f"PTCommandResult:{twin_id}:{executionId}:{command_id}"
-        dl.hset(key, mapping=hash)
-        dl.zadd("PTCommandResult_PROCESSED", {key: command_id})
-        print(f"Saved output object: {key}")
+            # Save to the Data Lake
+            key = f"PTCommandResult:{twin_id}:{executionId}:{command_id}"
+            dl.hset(key, mapping=hash)
+            dl.zadd("PTCommandResult_PROCESSED", {key: command_id})
+            print(f"Saved output object: {key}")
 
-        # Unset current command
-        status["command"] = None
+            # Unset current command
+            status["command"] = None
+        else:
+            pass # print(f"Error saving command result: command not found")
     except Exception as ex:
         print(f"Error saving command result: {ex}")
 
