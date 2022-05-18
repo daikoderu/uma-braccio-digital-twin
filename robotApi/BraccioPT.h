@@ -61,6 +61,12 @@ class _BraccioPT
         // Returns how much time will take to move the arm to the given position.
         float getMoveDuration(const Position& newPosition, float minTime);
 
+        // Returns the value of a servo by index (0~5)
+        int readServo(int i);
+
+        // Returns the value of all servos
+        void readAllServos(Position& dest);
+
         // Returns true if the robot is moving right now.
         bool isMoving();
 
@@ -73,7 +79,7 @@ class _BraccioPT
         Servo wrist;
         Servo gripper;
         float currentPosition[6];
-        float targetPosition[6];
+        Position targetPosition;
         float currentSpeeds[6];
         unsigned long nextMs;
         unsigned long nextSnapshotMs;
@@ -81,7 +87,6 @@ class _BraccioPT
         void softStart();
         void handleMovement(unsigned long ms);
         void generateSnapshots(unsigned long ms);
-        void printPositionArray(float *array, int length);
         
 };
 

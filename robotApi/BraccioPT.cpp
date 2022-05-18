@@ -47,9 +47,9 @@ void _BraccioPT::init(Position& startPosition, bool doSoftStart, unsigned long b
     for (int i = 0; i < 6; i++)
     {
         currentPosition[i] = startPosition.get(i);
-        targetPosition[i] = startPosition.get(i);
         currentSpeeds[i] = 0;
     }
+    targetPosition = startPosition;
 
     if (doSoftStart)
     {
@@ -76,7 +76,7 @@ void _BraccioPT::moveToPosition(const Position& newPosition, float minTime)
     for (int i = 0; i < 6; i++)
     {
         float displacement = abs(newPosition.get(i) - currentPosition[i]);
-        targetPosition[i] = newPosition.get(i);
+        targetPosition.set(i, newPosition.get(i));
         currentSpeeds[i] = displacement / time;
     }
 }
@@ -108,6 +108,31 @@ float _BraccioPT::getMoveDuration(const Position& newPosition, float minTime)
         actualTime = max(actualTime, actualTimes[i]);
     }
     return actualTime;
+}
+
+int _BraccioPT::readServo(int i)
+{
+    switch (i)
+    {
+        case 0: return base.read();
+        case 1: return shoulder.read();
+        case 2: return elbow.read();
+        case 3: return wrist.read();
+        case 4: return wristRotation.read();
+        case 5: return gripper.read();
+        default: return -1;
+    }
+}
+
+void _BraccioPT::readAllServos(Position& dest)
+{
+    dest.set(
+        base.read(),
+        shoulder.read(),
+        elbow.read(),
+        wrist.read(),
+        wristRotation.read(),
+        gripper.read());
 }
 
 bool _BraccioPT::isMoving()
@@ -143,13 +168,13 @@ void _BraccioPT::handleMovement(unsigned long ms)
             for (int i = 0; i < 6; i++)
             {
                 float step = currentSpeeds[i] * STEP_DELAY_MS / MS_PER_S;
-                if (currentPosition[i] < targetPosition[i])
+                if (currentPosition[i] < targetPosition.get(i))
                 {
-                    currentPosition[i] = min(currentPosition[i] + step, targetPosition[i]);
+                    currentPosition[i] = min(currentPosition[i] + step, targetPosition.get(i));
                 }
-                else if (currentPosition[i] > targetPosition[i])
+                else if (currentPosition[i] > targetPosition.get(i))
                 {
-                    currentPosition[i] = max(currentPosition[i] - step, targetPosition[i]);
+                    currentPosition[i] = max(currentPosition[i] - step, targetPosition.get(i));
                 }
                 else
                 {
@@ -176,24 +201,39 @@ void _BraccioPT::generateSnapshots(unsigned long ms)
         Serial.print("OUT ");
         Serial.print(ms);
         Serial.print(':');
-        printPositionArray(currentPosition, 6);
+
+        for (int i = 0; i < 6; i++)
+        {
+            if (i > 0)
+            {
+                Serial.print(",");
+            }
+            Serial.print(readServo(i));
+        }
+
         Serial.print(':');
-        printPositionArray(targetPosition, 6);
+        
+        for (int i = 0; i < 6; i++)
+        {
+            if (i > 0)
+            {
+                Serial.print(",");
+            }
+            Serial.print(targetPosition.get(i));
+        }
+
         Serial.print(':');
-        printPositionArray(currentSpeeds, 6);
+
+        for (int i = 0; i < 6; i++)
+        {
+            if (i > 0)
+            {
+                Serial.print(",");
+            }
+            Serial.print(currentSpeeds[i]);
+        }
+
         Serial.println();
         nextSnapshotMs += SNAPSHOT_PERIOD_MS;
-    }
-}
-
-void _BraccioPT::printPositionArray(float *array, int length)
-{
-    for (int i = 0; i < length; i++)
-    {
-        if (i > 0)
-        {
-            Serial.print(",");
-        }
-        Serial.print(array[i]);
     }
 }
