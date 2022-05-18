@@ -5,7 +5,7 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
-typedef const char* (*CommandHandler)(
+typedef char* (*CommandHandler)(
     _SerialInput *input,
     _BraccioPT *robot,
     unsigned long ms
@@ -14,7 +14,8 @@ typedef const char* (*CommandHandler)(
 struct _CommandType
 {
     const char *name;
-    CommandHandler handler;
+    CommandHandler executeImmediately;
+    CommandHandler execute;
 };
 typedef struct _CommandType CommandType;
 

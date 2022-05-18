@@ -17,36 +17,43 @@ void _CommandMonitor::processCommands(unsigned long ms)
 {
     if (!busy)
     {
-        // Find the appropiate handler
+        // Receiving a new command
         if (SerialInput.available() && SerialInput.getLength() >= 2
                 && !strcmp("COM", SerialInput.getArgument(0)))
         {
+            SerialInput.consume();
             commandHandler = NULL;
+            
+            // Find the appropiate handler
+            int i = 0;
+            CommandType ct = commandList[0];
+            while (ct.name != NULL)
             {
-                int i = 0;
-                CommandType ct = commandList[0];
-                while (ct.name != NULL)
+                if (!strcmp(ct.name, SerialInput.getArgument(1)))
                 {
-                    if (!strcmp(ct.name, SerialInput.getArgument(1)))
-                    {
-                        commandHandler = ct.handler;
-                        break;
-                    }
-                    i++;
-                    ct = commandList[i];
+                    commandHandler = ct.execute;
+                    break;
                 }
+                i++;
+                ct = commandList[i];
             }
+
             if (commandHandler != NULL)
             {
-                busy = true;
                 SerialInput.copy(&command);
-                result = NULL;
+                result = ct.executeImmediately(&command, &BraccioPT, ms);
+                busy = result == NULL;
+                if (!busy)
+                {
+                    // Command finished immediately
+                    Serial.print("RET ");
+                    Serial.println(result);
+                }
             }
             else
             {
                 Serial.println("RET invalid-command");
             }
-            SerialInput.consume();
         }
     }
     else

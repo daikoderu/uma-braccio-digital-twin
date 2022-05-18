@@ -459,7 +459,7 @@ class MoveToPositionCommand < Command
             if self.parsedPosition->size() = 6 and not self.parsedPosition->exists(x | x = null)
             and robot.isValidPosition(self.parsedPosition) then
                 robot.moveToPosition(self.parsedPosition, 0);
-                result := null;
+                result := 'ok';
             else
                 result := 'error'
             end;
@@ -467,11 +467,7 @@ class MoveToPositionCommand < Command
 
         execute(robot : BraccioRobot, args : Sequence(String), now : Integer) : String
         begin
-            if robot.readAllServos() = self.parsedPosition then
-                result := 'ok'
-            else
-                result := null
-            end;
+            result := 'ok'
         end
 
 end
