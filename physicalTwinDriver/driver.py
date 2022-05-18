@@ -75,7 +75,7 @@ def main():
         status = {
             "twinId": twin_id,
             "executionId": execution_id,
-            "timestamp": int(dl.get("now")),
+            "timestamp": 0,
             "quit": False,
             "command": None
         }

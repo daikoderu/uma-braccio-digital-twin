@@ -8,12 +8,12 @@ _CommandMonitor::_CommandMonitor()
     busy = false;
 }
 
-void _CommandMonitor::loop()
+void _CommandMonitor::loop(unsigned long ms)
 {
-    processCommands();
+    processCommands(ms);
 }
 
-void _CommandMonitor::processCommands()
+void _CommandMonitor::processCommands(unsigned long ms)
 {
     if (!busy)
     {
@@ -52,7 +52,7 @@ void _CommandMonitor::processCommands()
     else
     {
         // Executing a command
-        const char *result = commandHandler(&command, &BraccioPT);
+        const char *result = commandHandler(&command, &BraccioPT, ms);
         if (result != NULL)
         {
             busy = false;

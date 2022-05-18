@@ -8,8 +8,8 @@ class _CommandMonitor
 
     public:
 
-        // Function to be called in the Arduino loop() function
-        void loop();
+        // Function to be called in the Arduino loop() function, taking the current value of millis()
+        void loop(unsigned long ms);
 
         _CommandMonitor();
 
@@ -19,7 +19,7 @@ class _CommandMonitor
         char *result;
         bool busy;
 
-        void processCommands();
+        void processCommands(unsigned long ms);
         
 };
 

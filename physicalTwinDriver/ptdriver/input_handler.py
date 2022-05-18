@@ -36,15 +36,7 @@ def send_commands(robot: Braccio, dl: Redis, status: dict):
                 pass  # This command is not for this twin
 
 
-def send_ticks(robot: Braccio, dl: Redis, status: dict):
-    dl_time = int(dl.get("now"))
-    pt_time = status["timestamp"]
-    if dl_time >= pt_time + sleep_time_in_millis:
-        status["timestamp"] += sleep_time_in_millis
-        robot.write("TICK")
-
 def input_handler(robot: Braccio, dl: Redis, status: dict):
     while not status["quit"]:
         send_commands(robot, dl, status)
-        send_ticks(robot, dl, status)
         time.sleep(sleep_time_in_millis / 1000)

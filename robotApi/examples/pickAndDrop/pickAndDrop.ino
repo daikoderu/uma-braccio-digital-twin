@@ -1,5 +1,6 @@
-#include <BraccioPT.h>
+#include <SerialInput.h>
 #include <CommandMonitor.h>
+#include <BraccioPT.h>
 
 Position positions[] = {
     Position(90, 90, 180, 172, 90, GRIPPER_OPEN),
@@ -29,6 +30,7 @@ void setup()
 void loop()
 {
     unsigned long ms = millis();
+    SerialInput.loop();
     CommandMonitor.loop(ms);
     BraccioPT.loop(ms);
     loopSequence(ms);

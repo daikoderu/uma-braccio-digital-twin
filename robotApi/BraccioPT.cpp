@@ -57,7 +57,6 @@ void _BraccioPT::init(Position& startPosition, bool doSoftStart, unsigned long b
     }
     nextMs = 0;
     nextSnapshotMs = 0;
-    now = 0;
 
     // Initialize serial port
     Serial.begin(baudRate);
@@ -65,11 +64,10 @@ void _BraccioPT::init(Position& startPosition, bool doSoftStart, unsigned long b
 
 }
 
-void _BraccioPT::loop()
+void _BraccioPT::loop(unsigned long ms)
 {
-    handleTime();
-    handleMovement();
-    generateSnapshots();
+    handleMovement(ms);
+    generateSnapshots(ms);
 }
 
 void _BraccioPT::moveToPosition(const Position& newPosition, float minTime)
@@ -136,20 +134,9 @@ void _BraccioPT::softStart()
     }
 }
 
-void _BraccioPT::handleTime()
+void _BraccioPT::handleMovement(unsigned long ms)
 {
-    if (SerialInput.available() && SerialInput.getArgumentCount() == 1
-            && !strcmp("TICK", SerialInput.getArgument(0)))
-    {
-        now += STEP_DELAY_MS;
-        delay(STEP_DELAY_MS);
-        SerialInput.consume();
-    }
-}
-
-void _BraccioPT::handleMovement()
-{
-    if (now >= nextMs)
+    if (ms >= nextMs)
     {
         if (isMoving())
         {
@@ -178,16 +165,16 @@ void _BraccioPT::handleMovement()
             wristRotation.write(int(currentPosition[4]));
             gripper.write(int(currentPosition[5]));
         }
-        nextMs = now + STEP_DELAY_MS;
+        nextMs = ms + STEP_DELAY_MS;
     }
 }
 
-void _BraccioPT::generateSnapshots()
+void _BraccioPT::generateSnapshots(unsigned long ms)
 {
-    if (now >= nextSnapshotMs)
+    if (ms >= nextSnapshotMs)
     {
         Serial.print("OUT ");
-        Serial.print(now);
+        Serial.print(ms);
         Serial.print(':');
         printPositionArray(currentPosition, 6);
         Serial.print(':');

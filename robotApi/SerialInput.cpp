@@ -41,14 +41,18 @@ _SerialInput::_SerialInput()
 
 void _SerialInput::copy(_SerialInput *dest)
 {
-    strcpy(dest->buffer, buffer);
     dest->length = length;
     dest->argc = argc;
+    dest->fAvailable = fAvailable;
+    
+    // Copy bytes
+    memcpy(dest->buffer, buffer, INPUT_BUFFER_SIZE);
+
+    // Recalculate pointers
     for (int i = 0; i < argc; i++)
     {
         dest->argv[i] = argv[i] + (dest->buffer - buffer);
     }
-    dest->fAvailable = fAvailable;
 }
 
 void _SerialInput::consume()

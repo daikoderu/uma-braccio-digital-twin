@@ -9,7 +9,8 @@ void setup()
 
 void loop()
 {
+    unsigned long ms = millis();
     SerialInput.loop();
-    CommandMonitor.loop();
-    BraccioPT.loop();
+    CommandMonitor.loop(ms);
+    BraccioPT.loop(ms);
 }

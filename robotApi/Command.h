@@ -7,7 +7,8 @@
 
 typedef const char* (*CommandHandler)(
     _SerialInput *input,
-    _BraccioPT *robot
+    _BraccioPT *robot,
+    unsigned long ms
 );
 
 struct _CommandType

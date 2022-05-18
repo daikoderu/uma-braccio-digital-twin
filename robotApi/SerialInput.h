@@ -21,7 +21,11 @@ class _SerialInput
         _SerialInput();
 
         void copy(_SerialInput *dest);
+
+        // Returns whether a new command is available and can be processed
         inline bool available() const { return fAvailable; }
+
+        // "Consumes" the command so other tasks do not process it
         void consume();
 
     private:
