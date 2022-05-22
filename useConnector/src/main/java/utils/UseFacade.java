@@ -1,9 +1,7 @@
 package utils;
 
 import org.tzi.use.api.UseSystemApi;
-import org.tzi.use.uml.mm.MAttribute;
-import org.tzi.use.uml.mm.MClass;
-import org.tzi.use.uml.mm.MOperation;
+import org.tzi.use.uml.mm.*;
 import org.tzi.use.uml.ocl.expr.ExpObjRef;
 import org.tzi.use.uml.ocl.expr.Expression;
 import org.tzi.use.uml.ocl.expr.ExpressionWithValue;
@@ -11,7 +9,6 @@ import org.tzi.use.uml.ocl.type.Type;
 import org.tzi.use.uml.ocl.value.*;
 import org.tzi.use.uml.sys.*;
 import org.tzi.use.uml.sys.soil.MObjectOperationCallStatement;
-import org.tzi.use.uml.sys.soil.MOperationCallStatement;
 import org.tzi.use.uml.sys.soil.MStatement;
 
 import java.util.ArrayList;
@@ -38,14 +35,19 @@ public class UseFacade {
         api.getSystem().state().updateDerivedValues(true);
     }
 
-    // Object Creation
+    // Object Creation and Destruction
     // ============================================================================================
 
-    public synchronized MObjectState createObject(String className, String objectName)
+    public MObjectState createObject(String className, String objectName)
             throws MSystemException {
         MClass mclass = api.getSystem().model().getClass(className);
         MSystemState state = api.getSystem().state();
         return state.createObject(mclass, objectName).state(state);
+    }
+
+    public void destroyObject(MObjectState objstate) {
+        MSystemState state = api.getSystem().state();
+        state.deleteObject(objstate.object());
     }
 
     // Object Searching
@@ -56,7 +58,7 @@ public class UseFacade {
      * @param className The name of the class whose instances to retrieve.
      * @return A list with all objects of the specified class.
      */
-    public synchronized List<MObjectState> getObjectsOfClass(String className) {
+    public List<MObjectState> getObjectsOfClass(String className) {
         List<MObjectState> result = new ArrayList<>();
         MClass mclass = api.getSystem().model().getClass(className);
         for (MObject o : api.getSystem().state().allObjects()) {
@@ -94,7 +96,7 @@ public class UseFacade {
      * @param attributeName The name of the attribute to retrieve.
      * @return The value of the attribute, or null if the value is not an integer.
      */
-    public synchronized Integer getIntegerAttribute(MObjectState objstate, String attributeName) {
+    public Integer getIntegerAttribute(MObjectState objstate, String attributeName) {
         Value v = objstate.attributeValue(attributeName);
         return v instanceof IntegerValue ? ((IntegerValue) v).value() : null;
     }
@@ -105,7 +107,7 @@ public class UseFacade {
      * @param attributeName The name of the attribute to retrieve.
      * @return The value of the attribute, or null if the value is not a real number.
      */
-    public synchronized Double getRealAttribute(MObjectState objstate, String attributeName) {
+    public Double getRealAttribute(MObjectState objstate, String attributeName) {
         Value v = objstate.attributeValue(attributeName);
         return v instanceof RealValue ? ((RealValue) v).value() : null;
     }
@@ -116,7 +118,7 @@ public class UseFacade {
      * @param attributeName The name of the attribute to retrieve.
      * @return The value of the attribute, or null if the value is not a string.
      */
-    public synchronized String getStringAttribute(MObjectState objstate, String attributeName) {
+    public String getStringAttribute(MObjectState objstate, String attributeName) {
         Value v = objstate.attributeValue(attributeName);
         return v instanceof StringValue ? ((StringValue) v).value() : null;
     }
@@ -127,9 +129,23 @@ public class UseFacade {
      * @param attributeName The name of the attribute to retrieve.
      * @return The value of the attribute, or null if the value is not a boolean value.
      */
-    public synchronized Boolean getBooleanAttribute(MObjectState objstate, String attributeName) {
+    public Boolean getBooleanAttribute(MObjectState objstate, String attributeName) {
         Value v = objstate.attributeValue(attributeName);
         return v instanceof BooleanValue ? ((BooleanValue) v).value() : null;
+    }
+
+    public MObjectState getRelatedObject(MObjectState objectState, String associationEndName) {
+        MSystemState state = api.getSystem().state();
+        MObject object = objectState.object();
+        MClass mclass = object.cls();
+        List<MAssociationEnd> ends = mclass.getAssociationEnd(associationEndName);
+        if (!ends.isEmpty()) {
+            MAssociationEnd from = ends.get(0);
+            DTLogger.info(from.name());
+            return null;
+        } else {
+            throw new RuntimeException("Association end not found");
+        }
     }
 
     /**
@@ -138,7 +154,7 @@ public class UseFacade {
      * @param attributeName The name of the attribute to retrieve.
      * @return The value of the attribute.
      */
-    public synchronized String getAttributeAsString(MObjectState objstate, String attributeName) {
+    public String getAttributeAsString(MObjectState objstate, String attributeName) {
         return objstate.attributeValue(attributeName).toString();
     }
 
@@ -151,7 +167,7 @@ public class UseFacade {
      * @param attributeName The name of the attribute to set.
      * @param value The value to set.
      */
-    public synchronized void setAttribute(MObjectState objstate, String attributeName, Object value) {
+    public void setAttribute(MObjectState objstate, String attributeName, Object value) {
         setAttributeAux(objstate, attributeName, objectToUseValue(value));
     }
 

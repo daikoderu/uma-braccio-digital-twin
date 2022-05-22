@@ -76,11 +76,10 @@ public class DTPubSub extends JedisPubSub {
 
             case TIME_CHANNEL: // Update USE model's timestamp
                 try {
-                    int dlTime = TimePubService.getRedisTimestamp(jedis);
+                    int dlTime = TimePubService.getDTTimestampInDataLake(jedis);
                     while (dlTime >= useApi.getCurrentTime() + TimePubService.RESOLUTION_MS) {
                         useApi.tick();
                     }
-                    DTLogger.info("Current time: " + dlTime);
                 } catch (Exception ex) {
                     DTLogger.error("An error ocurred:", ex);
                 }

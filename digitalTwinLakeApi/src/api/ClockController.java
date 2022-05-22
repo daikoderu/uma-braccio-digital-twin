@@ -1,6 +1,6 @@
 package api;
 
-public class AutoTicker implements Runnable {
+public class ClockController implements Runnable {
 
     private static final int TICK_RESOLUTION_MS = 100;
 
@@ -8,7 +8,7 @@ public class AutoTicker implements Runnable {
     private volatile boolean ticking;
     private final DTDLConnection connection;
 
-    public AutoTicker(DTDLConnection connection) {
+    public ClockController(DTDLConnection connection) {
         ticking = false;
         running = false;
         this.connection = connection;
@@ -20,7 +20,7 @@ public class AutoTicker implements Runnable {
             busyWait();
             if (ticking) {
                 try (DTDataLake dl = connection.getResource()) {
-                    dl.advanceTime(TICK_RESOLUTION_MS);
+                    dl.advanceDTTime(TICK_RESOLUTION_MS);
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }

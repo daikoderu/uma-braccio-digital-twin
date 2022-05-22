@@ -20,7 +20,6 @@ public class InPubService extends PubService {
      * Default constructor.
      * @param channel The channel to send the event to
      * @param jedisPool The Jedis client pool connected to the data lake
-     * @param sleepTime Milliseconds between each check in the database
      * @param inputManager Manager to use to check for Data Lake objects.
      */
     public InPubService(String channel, JedisPool jedisPool, InputManager inputManager) {

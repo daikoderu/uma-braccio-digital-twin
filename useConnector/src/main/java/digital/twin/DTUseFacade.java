@@ -13,12 +13,15 @@ import java.util.Objects;
  */
 public class DTUseFacade extends UseFacade {
 
+    private MObjectState clock;
+
     /**
      * Sets the API instance to use for all subsequent calls to UseFacade methods.
      * @param api The USE API instance to interact with the currently displayed object diagram.
      */
     public DTUseFacade(UseSystemApi api) {
         super(api);
+        clock = null;
     }
 
     /**
@@ -26,12 +29,16 @@ public class DTUseFacade extends UseFacade {
      * @return The value of the "now" attribute in the Clock instance.
      */
     public int getCurrentTime() {
-        MObjectState clock = Objects.requireNonNull(getAnyObjectOfClass("Clock"));
+        if (clock == null) {
+            clock = Objects.requireNonNull(getAnyObjectOfClass("Clock"));
+        }
         return getIntegerAttribute(clock, "now");
     }
 
     public void tick() throws MSystemException {
-        MObjectState clock = Objects.requireNonNull(getAnyObjectOfClass("Clock"));
+        if (clock == null) {
+            clock = Objects.requireNonNull(getAnyObjectOfClass("Clock"));
+        }
         callOperation(clock, "tick", new Object[0]);
     }
 

@@ -41,4 +41,10 @@ public class CommandResultManager extends OutputManager {
             Jedis jedis, String objectTypeAndId, String attributeName,
             AttributeType type, String attributeValue) { }
 
+    protected void cleanUpModel(MObjectState objstate) {
+        MObjectState commandState = useApi.getRelatedObject(objstate, "command");
+        useApi.destroyObject(commandState);
+        useApi.destroyObject(objstate);
+    }
+
 }

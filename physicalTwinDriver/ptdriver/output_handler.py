@@ -30,6 +30,9 @@ def handle_output_snapshot(snapshot: str, dl: Redis, status: dict):
         dl.hset(key, mapping=hash)
         dl.zadd("PTOutputSnapshot_PROCESSED", {key: timestamp})
         print(f"Saved output object: {key}")
+
+        # Update timestamp
+        dl.set("PTnow", status["timestamp"])
     except Exception as ex:
         print(f"Error saving output snapshot: {ex}")
 

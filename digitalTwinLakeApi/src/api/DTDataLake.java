@@ -25,18 +25,25 @@ public class DTDataLake implements Closeable {
         return jedis.ping().equalsIgnoreCase("PONG");
     }
 
-    public int getTime() {
-        if (jedis.exists("now")) {
-            return Integer.parseInt(jedis.get("now"));
+    public int getPTTime() {
+        if (jedis.exists("PTnow")) {
+            return Integer.parseInt(jedis.get("PTnow"));
         } else {
             return 0;
         }
     }
-    public void advanceTime(int amount) {
+    public int getDTTime() {
+        if (jedis.exists("DTnow")) {
+            return Integer.parseInt(jedis.get("DTnow"));
+        } else {
+            return 0;
+        }
+    }
+    public void advanceDTTime(int amount) {
         if (amount < 0) {
             throw new IllegalArgumentException("amount must be non-negative");
         }
-        jedis.incrBy("now", amount);
+        jedis.incrBy("DTnow", amount);
     }
 
     public String getCurrentExecutionId() {

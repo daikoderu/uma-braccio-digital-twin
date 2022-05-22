@@ -1,6 +1,6 @@
 package client;
 
-import api.AutoTicker;
+import api.ClockController;
 import api.DTDLConnection;
 import api.DTDataLake;
 import org.javatuples.Pair;
@@ -72,7 +72,7 @@ public class CliSession {
         String[] tokens;
 
         // Create auto-ticker
-        AutoTicker ticker = new AutoTicker(connection);
+        ClockController ticker = new ClockController(connection);
         Thread tickerThread = new Thread(ticker);
         tickerThread.start();
 

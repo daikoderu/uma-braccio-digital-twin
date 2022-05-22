@@ -129,7 +129,16 @@ public abstract class OutputManager {
 
         // Add registers for other queries
         addObjectQueryRegisters(jedis, objectTypeAndId, armValues);
+
+        // Clean up
+        cleanUpModel(objstate);
     }
+
+    /**
+     * Removes processed objects from the Data Lake.
+     * @param objstate The object state that has been processed.
+     */
+    protected abstract void cleanUpModel(MObjectState objstate);
 
     /**
      * Adds registers to the data lake each time an object is processed to make queries possible.
