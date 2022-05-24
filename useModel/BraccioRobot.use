@@ -308,7 +308,7 @@ abstract class RobotMonitor < ActiveObject
 
         -- milliseconds to wait between snapshots
         timeBetweenActions : Integer
-            init: 200
+            init: 100
 
         timeForNextAction : Integer
             init: 0

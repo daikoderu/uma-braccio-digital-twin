@@ -66,7 +66,7 @@ public class DTPubSub extends JedisPubSub {
                 case TIME_CHANNEL: // Update USE model's timestamp
                     int dlTime = TimePubService.getDTTimestampInDataLake(jedis);
                     int useTime = useApi.getCurrentTime();
-                    int ticks = (dlTime - useTime) / TimePubService.RESOLUTION_MS;
+                    int ticks = (dlTime - useTime) / TimePubService.TICK_PERIOD_MS;
                     if (ticks > 0) {
                         useApi.advanceTime(ticks);
                     }

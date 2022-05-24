@@ -8,7 +8,7 @@ import utils.DTLogger;
 public class TimePubService extends PubService {
 
     public static final String DT_NOW = "DTnow";
-    public static final int RESOLUTION_MS = 100;
+    public static final int TICK_PERIOD_MS = 100;
 
     private final JedisPool jedisPool;
     private final DTUseFacade useApi;
@@ -21,7 +21,7 @@ public class TimePubService extends PubService {
      * @param useApi USE API facade instance to interact with the currently displayed object diagram.
      */
     public TimePubService(String channel, JedisPool jedisPool, DTUseFacade useApi) {
-        super(channel, RESOLUTION_MS);
+        super(channel, TICK_PERIOD_MS);
         this.jedisPool = jedisPool;
         this.useApi = useApi;
     }
@@ -31,7 +31,7 @@ public class TimePubService extends PubService {
         try (Jedis jedis = jedisPool.getResource()) {
             int dlTime = getDTTimestampInDataLake(jedis);
             int useTime = useApi.getCurrentTime();
-            if (dlTime >= useTime + RESOLUTION_MS) {
+            if (dlTime >= useTime + TICK_PERIOD_MS) {
                 jedis.publish(getChannel(), "Tick received");
             }
         } catch (Exception ex) {
