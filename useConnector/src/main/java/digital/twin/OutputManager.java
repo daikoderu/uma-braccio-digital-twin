@@ -1,5 +1,6 @@
 package digital.twin;
 
+import org.tzi.use.api.UseApiException;
 import org.tzi.use.uml.sys.MObjectState;
 import redis.clients.jedis.Jedis;
 import utils.DTLogger;
@@ -123,22 +124,29 @@ public abstract class OutputManager {
         DTLogger.info(getChannel(), "Saved output object: " + objectTypeAndId);
 
         // Mark object as processed
+        int time = useApi.getCurrentTime();
         jedis.zadd(objectType + "_PROCESSED", getObjectScore(objstate), objectTypeAndId);
+        jedis.hset(objectTypeAndId, WHEN_PROCESSED, time + "");
         useApi.setAttribute(objstate, IS_PROCESSED, true);
-        useApi.setAttribute(objstate, WHEN_PROCESSED, useApi.getCurrentTime());
+        useApi.setAttribute(objstate, WHEN_PROCESSED, time);
 
         // Add registers for other queries
         addObjectQueryRegisters(jedis, objectTypeAndId, armValues);
 
         // Clean up
-        cleanUpModel(objstate);
+        try {
+            cleanUpModel(objstate);
+        } catch (Exception ex) {
+            DTLogger.error("Could not clean up model:");
+            ex.printStackTrace();
+        }
     }
 
     /**
      * Removes processed objects from the Data Lake.
      * @param objstate The object state that has been processed.
      */
-    protected abstract void cleanUpModel(MObjectState objstate);
+    protected abstract void cleanUpModel(MObjectState objstate) throws UseApiException;
 
     /**
      * Adds registers to the data lake each time an object is processed to make queries possible.

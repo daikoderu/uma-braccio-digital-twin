@@ -159,7 +159,6 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     private void initializeModel() {
         try (Jedis jedis = jedisPool.getResource()) {
             setExecutionIds(jedis);
-            jedis.set(TimePubService.PT_NOW, "0");
             jedis.set(TimePubService.DT_NOW, "0");
             jedis.set(DL_COMMAND_COUNTER, "0");
         } catch (Exception ex) {

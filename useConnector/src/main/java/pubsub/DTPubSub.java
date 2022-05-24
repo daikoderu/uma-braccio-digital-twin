@@ -45,50 +45,40 @@ public class DTPubSub extends JedisPubSub {
      */
     @Override
     public void onMessage(String channel, String message) {
-        switch (channel) {
+        try {
+            switch (channel) {
 
-            case DT_OUT_CHANNEL: // Info leaving USE
-                try {
+                case DT_OUT_CHANNEL: // Info leaving USE
                     dtOutSnapshotsManager.saveObjectsToDataLake(jedis);
                     DTLogger.info("New Output Snapshots saved");
-                } catch (Exception ex) {
-                    DTLogger.error("An error ocurred:", ex);
-                }
-                break;
+                    break;
 
-            case COMMAND_IN_CHANNEL: // Commands entering USE
-                try {
+                case COMMAND_IN_CHANNEL: // Commands entering USE
                     commandManager.saveObjectsToUseModel(jedis);
                     DTLogger.info("New Commands received");
-                } catch (Exception ex) {
-                    DTLogger.error("An error ocurred:", ex);
-                }
-                break;
+                    break;
 
-            case COMMAND_OUT_CHANNEL: // Command results leaving USE
-                try {
+                case COMMAND_OUT_CHANNEL: // Command results leaving USE
                     commandResultManager.saveObjectsToDataLake(jedis);
                     DTLogger.info("New Command Results saved");
-                } catch (Exception ex) {
-                    DTLogger.error("An error ocurred:", ex);
-                }
-                break;
+                    break;
 
-            case TIME_CHANNEL: // Update USE model's timestamp
-                try {
+                case TIME_CHANNEL: // Update USE model's timestamp
                     int dlTime = TimePubService.getDTTimestampInDataLake(jedis);
-                    while (dlTime >= useApi.getCurrentTime() + TimePubService.RESOLUTION_MS) {
-                        useApi.tick();
+                    int useTime = useApi.getCurrentTime();
+                    int ticks = (dlTime - useTime) / TimePubService.RESOLUTION_MS;
+                    if (ticks > 0) {
+                        useApi.advanceTime(ticks);
                     }
-                } catch (Exception ex) {
-                    DTLogger.error("An error ocurred:", ex);
-                }
-                break;
+                    break;
 
-            default:
-                DTLogger.warn("Received message in unknown channel: " + channel);
-                break;
+                default:
+                    DTLogger.warn("Received message in unknown channel: " + channel);
+                    break;
 
+            }
+        } catch (Exception ex) {
+            DTLogger.error("An error ocurred on channel " + channel  + ":", ex);
         }
     }
 
@@ -99,7 +89,7 @@ public class DTPubSub extends JedisPubSub {
      */
     @Override
     public void onSubscribe(String channel, int subscribedChannels) {
-        DTLogger.info("Client is subscribed to channel: " + channel);
+        DTLogger.info("Client is subscribed to channel " + channel);
     }
 
 }

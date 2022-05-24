@@ -1,5 +1,6 @@
 package utils;
 
+import org.tzi.use.api.UseApiException;
 import org.tzi.use.api.UseSystemApi;
 import org.tzi.use.uml.mm.*;
 import org.tzi.use.uml.ocl.expr.ExpObjRef;
@@ -13,6 +14,7 @@ import org.tzi.use.uml.sys.soil.MStatement;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author Daniel Pérez - University of Málaga
@@ -21,7 +23,10 @@ import java.util.List;
 @SuppressWarnings("unused")
 public class UseFacade {
 
+    private static final Expression[] emptyArgs = new Expression[0];
+
     private final UseSystemApi api;
+    private final ReentrantLock mutex;
 
     /**
      * Sets the API instance to use for all subsequent calls to UseFacade methods.
@@ -29,6 +34,7 @@ public class UseFacade {
      */
     public UseFacade(UseSystemApi api) {
         this.api = api;
+        mutex = new ReentrantLock();
     }
 
     public void updateDerivedValues() {
@@ -40,14 +46,23 @@ public class UseFacade {
 
     public MObjectState createObject(String className, String objectName)
             throws MSystemException {
-        MClass mclass = api.getSystem().model().getClass(className);
-        MSystemState state = api.getSystem().state();
-        return state.createObject(mclass, objectName).state(state);
+        try {
+            mutex.lock();
+            MClass mclass = api.getSystem().model().getClass(className);
+            MSystemState state = api.getSystem().state();
+            return state.createObject(mclass, objectName).state(state);
+        } finally {
+            mutex.unlock();
+        }
     }
 
-    public void destroyObject(MObjectState objstate) {
-        MSystemState state = api.getSystem().state();
-        state.deleteObject(objstate.object());
+    public void destroyObject(MObjectState objstate) throws UseApiException {
+        try {
+            mutex.lock();
+            api.deleteObjectEx(objstate.object());
+        } finally {
+            mutex.unlock();
+        }
     }
 
     // Object Searching
@@ -75,7 +90,7 @@ public class UseFacade {
      * @param className The name of the class whose instance to retrieve.
      * @return An instance of the given class, or null if no instances are found.
      */
-    public synchronized MObjectState getAnyObjectOfClass(String className) {
+    public MObjectState getAnyObjectOfClass(String className) {
         MObjectState result = null;
         MClass mclass = api.getSystem().model().getClass(className);
         for (MObject o : api.getSystem().state().allObjects()) {
@@ -132,20 +147,6 @@ public class UseFacade {
     public Boolean getBooleanAttribute(MObjectState objstate, String attributeName) {
         Value v = objstate.attributeValue(attributeName);
         return v instanceof BooleanValue ? ((BooleanValue) v).value() : null;
-    }
-
-    public MObjectState getRelatedObject(MObjectState objectState, String associationEndName) {
-        MSystemState state = api.getSystem().state();
-        MObject object = objectState.object();
-        MClass mclass = object.cls();
-        List<MAssociationEnd> ends = mclass.getAssociationEnd(associationEndName);
-        if (!ends.isEmpty()) {
-            MAssociationEnd from = ends.get(0);
-            DTLogger.info(from.name());
-            return null;
-        } else {
-            throw new RuntimeException("Association end not found");
-        }
     }
 
     /**
@@ -213,24 +214,46 @@ public class UseFacade {
     private void setAttributeAux(MObjectState objstate, String attributeName, Value value) {
         MClass mclass = objstate.object().cls();
         MAttribute attribute = mclass.attribute(attributeName, true);
-        objstate.setAttributeValue(attribute, value);
+        try {
+            mutex.lock();
+            objstate.setAttributeValue(attribute, value);
+        } finally {
+            mutex.unlock();
+        }
     }
 
     // Operation calls
     // ============================================================================================
 
-    public synchronized void callOperation(MObjectState objstate, String operationName, Object[] args)
-            throws MSystemException {
+    public StatementEvaluationResult callOperation(
+            MObjectState objstate, String operationName) throws MSystemException {
+        return callOperation(objstate, operationName, (Object) null);
+    }
+
+    public StatementEvaluationResult callOperation(
+            MObjectState objstate, String operationName, Object... args) throws MSystemException {
         MObject mobject = objstate.object();
         MClass mclass = mobject.cls();
         MOperation operation = mclass.operation(operationName, true);
-        Expression[] useArgs = new Expression[args.length];
-        for (int i = 0; i < args.length; i++) {
-            useArgs[i] = new ExpressionWithValue(objectToUseValue(args[i]));
+
+        // Convert arguments to USE expressions
+        Expression[] useArgs = emptyArgs;
+        if (args != null) {
+            useArgs = new Expression[args.length];
+            for (int i = 0; i < args.length; i++) {
+                useArgs[i] = new ExpressionWithValue(objectToUseValue(args[i]));
+            }
         }
+
+        // Create and execute statement
         MStatement stmt = new MObjectOperationCallStatement(
                 new ExpObjRef(mobject), operation, useArgs);
-        api.getSystem().execute(stmt);
+        try {
+            mutex.lock();
+            return api.getSystem().execute(stmt);
+        } finally {
+            mutex.unlock();
+        }
     }
 
 }

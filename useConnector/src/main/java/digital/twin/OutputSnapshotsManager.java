@@ -1,9 +1,9 @@
 package digital.twin;
 
+import org.tzi.use.api.UseApiException;
 import org.tzi.use.uml.sys.MObjectState;
 import pubsub.DTPubSub;
 import redis.clients.jedis.Jedis;
-import utils.DTLogger;
 
 import java.util.Map;
 
@@ -52,7 +52,7 @@ public class OutputSnapshotsManager extends OutputManager {
         addHistoryRegister(jedis, objectTypeAndId, attributeName, type, attributeValue);
     }
 
-    protected void cleanUpModel(MObjectState objstate) {
+    protected void cleanUpModel(MObjectState objstate) throws UseApiException {
         useApi.destroyObject(objstate);
     }
 

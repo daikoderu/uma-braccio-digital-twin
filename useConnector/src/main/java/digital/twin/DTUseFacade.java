@@ -3,6 +3,7 @@ package digital.twin;
 import org.tzi.use.api.UseSystemApi;
 import org.tzi.use.uml.sys.MObjectState;
 import org.tzi.use.uml.sys.MSystemException;
+import utils.DTLogger;
 import utils.UseFacade;
 
 import java.util.Objects;
@@ -35,11 +36,15 @@ public class DTUseFacade extends UseFacade {
         return getIntegerAttribute(clock, "now");
     }
 
-    public void tick() throws MSystemException {
+    public void advanceTime(int ticks) {
         if (clock == null) {
             clock = Objects.requireNonNull(getAnyObjectOfClass("Clock"));
         }
-        callOperation(clock, "tick", new Object[0]);
+        try {
+            callOperation(clock, "run", ticks);
+        } catch (MSystemException ex) {
+            DTLogger.error("Error when advancing time:", ex);
+        }
     }
 
 }

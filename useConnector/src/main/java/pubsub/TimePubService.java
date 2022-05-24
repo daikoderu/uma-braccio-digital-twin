@@ -7,7 +7,6 @@ import utils.DTLogger;
 
 public class TimePubService extends PubService {
 
-    public static final String PT_NOW = "PTnow";
     public static final String DT_NOW = "DTnow";
     public static final int RESOLUTION_MS = 100;
 
