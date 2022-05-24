@@ -17,3 +17,6 @@ class Braccio:
         if string:
             print(f">> {string}")
         return string
+
+    def flush(self) -> None:
+        self.port.read_all()

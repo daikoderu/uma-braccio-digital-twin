@@ -5,9 +5,12 @@ import time
 import redis
 import serial
 
+from ptdriver.driver_exception import DriverException
 from ptdriver.output_handler import output_handler
 from ptdriver.input_handler import input_handler
 from ptdriver.braccio import Braccio
+from ptdriver.ptcontext import PTContext
+
 
 def enter_redis_hostport():
     host, _, port_str = input("Enter Data Lake host and port: ").partition(":")
@@ -22,7 +25,8 @@ def enter_redis_hostport():
     return host, port
 
 
-def setup():
+def setup() -> PTContext:
+    """Asks the user to set up the connections to the Data Lake and the physical twin."""
     try:
         # Read Twin Id
         twin_id = input("Enter Twin Id: ")
@@ -34,54 +38,38 @@ def setup():
         # Get execution ID
         execution_id_bytes = dl.get("executionId")
         if not execution_id_bytes:
-            return {
-                "success": False,
-                "error": "Execution ID not set. Please initialize the Digital Twin first."
-            }
+            raise DriverException(
+                "Execution ID not set."
+                "Please initialize the Digital Twin first."
+            )
         execution_id = execution_id_bytes.decode()
 
         # Read serial port
         serialport = input("Enter serial port: ")
         robot = Braccio(serialport)
 
-        return {
-            "success": True,
-            "robot": robot,
-            "dl": dl,
-            "twinId": twin_id,
-            "executionId": execution_id
-        }
+        return PTContext(robot, dl, twin_id, execution_id)
     except serial.serialutil.SerialException as ex:
-        return {
-            "success": False,
-            "error": f"Serial port error: {ex}"
-        }
-    except KeyboardInterrupt as ex:
-        return {
-            "success": False,
-            "error": "Goodbye!"
-        }
+        raise DriverException(f"Serial port error: {ex}")
     except redis.exceptions.ConnectionError as ex:
-        return {
-            "success": False,
-            "error": f"Error when connecting to the Data Lake: {ex}"
-        }
+        raise DriverException(f"Error when connecting to the Data Lake: {ex}")
 
 def main():
-    setup_result = setup()
-    if (setup_result["success"]):
-        robot, dl = setup_result["robot"], setup_result["dl"]
-        twin_id, execution_id = setup_result["twinId"], setup_result["executionId"]
-        status = {
-            "twinId": twin_id,
-            "executionId": execution_id,
-            "timestamp": 0,
-            "quit": False,
-            "command": None
-        }
-        print(f"PTDriver connected. Execution ID: {execution_id}")
-        input_thread = Thread(target=input_handler, name="InputThread", args=(robot, dl, status))
-        output_thread = Thread(target=output_handler, name="OutputThread", args=(robot, dl, status))
+    context = None
+    try:
+        # Set up connections
+        context = setup()
+    except DriverException as ex:
+        print(ex)
+        return 1
+    except KeyboardInterrupt:
+        print("Quitting...")
+        return 0
+
+    if context is not None:
+        print(f"PTDriver connected. Execution ID: {context.execution_id}")
+        input_thread = Thread(target=input_handler, name="InputThread", args=(context,))
+        output_thread = Thread(target=output_handler, name="OutputThread", args=(context,))
 
         input_thread.start()
         output_thread.start()
@@ -90,12 +78,9 @@ def main():
             while True:
                 time.sleep(10000)
         except KeyboardInterrupt:
-            status["quit"] = True
+            context.quit = True
             print("Quitting...")
             return 0
-    else:
-        print(setup_result["error"])
-        return 1
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -1,19 +1,19 @@
-from redis import Redis
-
-from .braccio import Braccio
+from ptdriver.ptcontext import PTContext
 
 
-def handle_output_snapshot(snapshot: str, dl: Redis, status: dict):
+def handle_output_snapshot(output: str, context: PTContext):
     try:
-        twin_id, executionId = status["twinId"], status["executionId"]
-        timestamp, currentpos, targetpos, speeds = snapshot.split(':')
+        # Parse snapshot
+        timestamp, currentpos, targetpos, speeds = output.split(':')
         currentpos_list = currentpos.split(',')
         targetpos_list = targetpos.split(',')
         speeds_list = speeds.split(',')
-        status["timestamp"] = max(int(timestamp), status["timestamp"])
+        context.update_timestamp(int(timestamp))
+
+        # Build the hash
         hash = {
-            "twinId": twin_id,
-            "executionId": executionId,
+            "twinId": context.twin_id,
+            "executionId": context.execution_id,
             "timestamp": timestamp,
         }
         is_moving = False
@@ -26,62 +26,68 @@ def handle_output_snapshot(snapshot: str, dl: Redis, status: dict):
         hash["moving"] = 1 if is_moving else 0
 
         # Save to the Data Lake
-        key = f"PTOutputSnapshot:{twin_id}:{executionId}:{timestamp}"
-        dl.hset(key, mapping=hash)
-        dl.zadd("PTOutputSnapshot_PROCESSED", {key: timestamp})
+        key = f"PTOutputSnapshot:{context.twin_id}:{context.execution_id}:{context.timestamp}"
+        context.datalake.hset(key, mapping=hash)
+        context.datalake.zadd("PTOutputSnapshot_PROCESSED", {key: timestamp})
         print(f"Saved output object: {key}")
-
-        # Update timestamp
-        dl.set("PTnow", status["timestamp"])
     except Exception as ex:
         print(f"Error saving output snapshot: {ex}")
 
 
-def handle_command_result(result: str, dl: Redis, status: dict):
+def handle_command_result(output: str, context: PTContext):
     try:
-        twin_id, executionId = status["twinId"], status["executionId"]
-        command = status["command"]
+        command = context.command
         if command is not None:
-            command_id = command["commandId"]
+            # We assume the command stored in context.command is the command
+            # that has just been executed
             hash = {
-                "twinId": twin_id,
-                "executionId": executionId,
-                "timestamp": status["timestamp"],
-                "commandId": command_id,
-                "commandName": command["name"],
-                "commandArguments": command["arguments"],
-                "commandTimestamp": command["whenProcessed"],
-                "return": result
+                "twinId": context.twin_id,
+                "executionId": context.execution_id,
+                "timestamp": context.timestamp,
+                "commandId": command.id,
+                "commandName": command.name,
+                "commandArguments": command.arguments,
+                "commandTimestamp": command.when_processed,
+                "return": output
             }
+            print(hash)
 
             # Save to the Data Lake
-            key = f"PTCommandResult:{twin_id}:{executionId}:{command_id}"
-            dl.hset(key, mapping=hash)
-            dl.zadd("PTCommandResult_PROCESSED", {key: command_id})
+            key = f"PTCommandResult:{context.twin_id}:{context.execution_id}:{command.id}"
+            context.datalake.hset(key, mapping=hash)
+            context.datalake.zadd("PTCommandResult_PROCESSED", {key: command.id})
             print(f"Saved output object: {key}")
-
-            # Unset current command
-            status["command"] = None
         else:
-            pass # print(f"Error saving command result: command not found")
+            print(f"Error saving command result: no command.")
     except Exception as ex:
         print(f"Error saving command result: {ex}")
 
+    # Unset current command
+    context.command = None
 
-def output_handler(robot: Braccio, dl: Redis, status: dict):
+
+output_handlers = {
+    "OUT": handle_output_snapshot,
+    "RET": handle_command_result,
+}
+
+
+def output_handler(context: PTContext):
     try:
-        while not status["quit"]:
+        # Flush any output from previous executions
+        context.robot.flush()
+
+        while not context.quit:
             try:
-                out = robot.read()
-                if out:
-                    if out.startswith("OUT "):
-                        # This is an output snapshot
-                        handle_output_snapshot(out[4:], dl, status)
-                    elif out.startswith("RET "):
-                        # This is a command result
-                        handle_command_result(out[4:], dl, status)
+                out = context.robot.read()
+                for prefix, handler in output_handlers.items():
+                    if out.startswith(f"{prefix} "):
+                        handler(out[len(prefix) + 1:], context)
+                        break
+                else:
+                    print("Unknown output from physical twin!")
             except:
                 pass
     except EOFError:
         print("End of file found. Aborting.")
-        status["quit"] = True
+        context.quit = True
