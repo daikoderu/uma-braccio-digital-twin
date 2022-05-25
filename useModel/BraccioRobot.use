@@ -135,25 +135,26 @@ class Servo < ActiveObject
 
         action()
         begin
-            declare displacement : Real;
+            if not self.robot.isFrozen then
+                declare displacement : Real;
 
-            -- How much we can move in this tick
-            displacement := self.currentSpeed * self.clock.resolution / 1000;
+                -- How much we can move in this tick
+                displacement := self.currentSpeed * self.clock.resolution / 1000;
 
-            -- Move servo according to currentSpeed, if target position is not reached
-            if self.currentAngle < self.targetAngle then
-                self.currentAngle := self.targetAngle.min(self.currentAngle + displacement)
-            else
-                if self.currentAngle > self.targetAngle then
-                    self.currentAngle := self.targetAngle.max(self.currentAngle - displacement)
+                -- Move servo according to currentSpeed, if target position is not reached
+                if self.currentAngle < self.targetAngle then
+                    self.currentAngle := self.targetAngle.min(self.currentAngle + displacement)
+                else
+                    if self.currentAngle > self.targetAngle then
+                        self.currentAngle := self.targetAngle.max(self.currentAngle - displacement)
+                    end
+                end;
+                
+                if self.currentAngle = self.targetAngle then
+                    -- Target position reached
+                    self.currentSpeed := 0.0
                 end
-            end;
-            
-            if self.currentAngle = self.targetAngle then
-                -- Target position reached
-                self.currentSpeed := 0.0
             end
-
         end
         post: self.currentAngle@pre <= self.targetAngle implies self.currentAngle@pre <= self.targetAngle
         post: self.currentAngle@pre >= self.targetAngle implies self.currentAngle@pre >= self.targetAngle
@@ -177,7 +178,7 @@ class BraccioRobot
         twinId : String
             init: 'MyBraccioArm'
         executionId : String
-            init: '0'
+            init: 'test'
 
         -- Minimum and maximum values for each servo
         minServoAngles : Sequence(Integer)
@@ -194,6 +195,10 @@ class BraccioRobot
         -- Returns whether any servo of this robot is moving
         moving : Boolean
             derive: self.servo->exists(s | s.moving)
+
+        -- Returns whether this robot is "frozen" (if true, any movement is paused)
+        isFrozen : Boolean
+            init: false
 
     operations
 
@@ -475,9 +480,6 @@ end
 class FreezeCommand < Command
 
     attributes
-        frozenPosition : Sequence(Real)
-        targetPosition : Sequence(Integer)
-        currentSpeeds : Sequence(Real)
         freezeEndTime : Integer
     
     operations
@@ -488,13 +490,7 @@ class FreezeCommand < Command
             if args->size() = 1 then
                 freezeTime := args->at(1).toInteger();
                 if freezeTime <> null and freezeTime >= 0 then
-                    self.frozenPosition := robot.readAllServos();
-                    self.targetPosition := robot.servo.targetAngle;
-                    self.currentSpeeds := robot.servo.currentSpeed;
-                    for i in Sequence{1..6} do
-                        robot.servo->at(i).targetAngle := robot.servo->at(i).currentAngle.round();
-                        robot.servo->at(i).currentSpeed := 0;
-                    end;
+                    robot.isFrozen := true;
                     self.freezeEndTime := now + freezeTime;
                     result := null;
                 else
@@ -508,17 +504,9 @@ class FreezeCommand < Command
         execute(robot : BraccioRobot, args : Sequence(String), now : Integer) : String
         begin
             if now >= self.freezeEndTime then
-                for i in Sequence{1..6} do
-                    robot.servo->at(i).targetAngle := self.targetPosition->at(i);
-                    robot.servo->at(i).currentSpeed := self.currentSpeeds->at(i);
-                end;
+                robot.isFrozen := false;
                 result := 'ok';
             else
-                for i in Sequence{1..6} do
-                    robot.servo->at(i).currentAngle := self.frozenPosition->at(i);
-                    robot.servo->at(i).targetAngle := robot.servo->at(i).currentAngle.round();
-                    robot.servo->at(i).currentSpeed := 0;
-                end;
                 result := null;
             end
         end
