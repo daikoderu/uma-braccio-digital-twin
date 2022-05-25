@@ -30,14 +30,7 @@
 #define SOFT_START_TIME 1000
 
 #define MS_PER_S 1000
-#define STEP_DELAY_MS 10
-#define SNAPSHOT_PERIOD_MS 100
 
-// Maximum speed in degrees per second
-#define MAXIMUM_SPEED 200
-
-// Maximum speed in degrees per second for the base and shoulder joints
-#define BIG_JOINT_MAXIMUM_SPEED 140
 
 class _BraccioPT
 {

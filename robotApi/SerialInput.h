@@ -3,8 +3,7 @@
 #ifndef SERIAL_INPUT_H
 #define SERIAL_INPUT_H
 
-#define INPUT_BUFFER_SIZE 64
-#define MAX_ARGS 8
+#include "Config.h"
 
 class _SerialInput
 {

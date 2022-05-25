@@ -49,4 +49,6 @@ reset
 !insert (commandMonitor, robot) into Monitoring
 !insert (ck, commandMonitor) into Time
 
+open Config.soil
+
 check

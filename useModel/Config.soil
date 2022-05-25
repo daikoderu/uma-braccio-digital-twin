@@ -1,0 +1,15 @@
+-- CONFIGURATION FILE FOR THE USE DIGITAL TWIN
+--------------------------------------------------------------------------------
+
+-- Resolution of the Digital Twin's clock in milliseconds
+!ck.resolution := 20
+
+-- Digital Twin robot properties
+-- (robot.executionId is auto-generated each time a connection
+-- with the Data Lake is created.)
+!robot.twinId := 'MyBraccioArm'
+!robot.maxSpeed := 200
+!robot.bigJointMaxSpeed := 140
+
+-- Time between snapshots in milliseconds
+!outputSnapshotMonitor.timeBetweenActions := 100
