@@ -57,6 +57,7 @@ void _BraccioPT::init(Position& startPosition, bool doSoftStart, unsigned long b
     }
     nextMs = 0;
     nextSnapshotMs = 0;
+    isFrozen = false;
 
     // Initialize serial port
     Serial.begin(baudRate);
@@ -135,6 +136,11 @@ void _BraccioPT::readAllServos(Position& dest)
         gripper.read());
 }
 
+void _BraccioPT::setFrozen(bool isFrozen)
+{
+    this->isFrozen = isFrozen;
+}
+
 bool _BraccioPT::isMoving()
 {
     for (int i = 0; i < 6; i++)
@@ -163,7 +169,7 @@ void _BraccioPT::handleMovement(unsigned long ms)
 {
     if (ms >= nextMs)
     {
-        if (isMoving())
+        if (!isFrozen && isMoving())
         {
             for (int i = 0; i < 6; i++)
             {

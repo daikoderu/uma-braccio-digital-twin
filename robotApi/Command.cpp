@@ -31,7 +31,45 @@ char* handleMoveto(_SerialInput *input, _BraccioPT *robot, unsigned long ms)
     return ok;
 }
 
+
+unsigned long int frozenUntil;
+
+
+char* handleFreezeImmediate(_SerialInput *input, _BraccioPT *robot, unsigned long ms)
+{
+    // Validate arguments
+    if (input->getArgumentCount() != 3)
+    {
+        return error;
+    }
+    char *err;
+    long int freezeTime = strtol(input->getArgument(2), &err, 10);
+    if (*err || freezeTime < 0)
+    {
+        return error;
+    }
+    frozenUntil = ms + freezeTime;
+
+    // Save the current state of the robot
+    robot->setFrozen(true);
+    return NULL;
+}
+
+char* handleFreeze(_SerialInput *input, _BraccioPT *robot, unsigned long ms)
+{
+    if (ms >= frozenUntil)
+    {
+        robot->setFrozen(false);
+        return ok;
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
 CommandType commandList[] = {
     {"moveto", handleMovetoImmediate, handleMoveto},
+    {"freeze", handleFreezeImmediate, handleFreeze},
     {NULL, NULL}
 };

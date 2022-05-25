@@ -50,7 +50,6 @@ def handle_command_result(output: str, context: PTContext):
                 "commandTimestamp": command.when_processed,
                 "return": output
             }
-            print(hash)
 
             # Save to the Data Lake
             key = f"PTCommandResult:{context.twin_id}:{context.execution_id}:{command.id}"

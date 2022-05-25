@@ -67,7 +67,11 @@ class _BraccioPT
         // Returns the value of all servos
         void readAllServos(Position& dest);
 
-        // Returns true if the robot is moving right now.
+        // Sets whether this robot is frozen or not.
+        void setFrozen(bool isFrozen);
+
+        // Returns true if the robot is moving right now. If frozen, this may still be true
+        // if the robot was moving just before being frozen.
         bool isMoving();
 
     private:
@@ -83,6 +87,7 @@ class _BraccioPT
         float currentSpeeds[6];
         unsigned long nextMs;
         unsigned long nextSnapshotMs;
+        bool isFrozen;
 
         void softStart();
         void handleMovement(unsigned long ms);
