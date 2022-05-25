@@ -472,6 +472,59 @@ class MoveToPositionCommand < Command
 
 end
 
+class FreezeCommand < Command
+
+    attributes
+        frozenPosition : Sequence(Real)
+        targetPosition : Sequence(Integer)
+        currentSpeeds : Sequence(Real)
+        freezeEndTime : Integer
+    
+    operations
+
+        executeImmediately(robot : BraccioRobot, args : Sequence(String), now : Integer) : String
+        begin
+            declare freezeTime : Integer;
+            if args->size() = 1 then
+                freezeTime := args->at(1).toInteger();
+                if freezeTime <> null and freezeTime >= 0 then
+                    self.frozenPosition := robot.readAllServos();
+                    self.targetPosition := robot.servo.targetAngle;
+                    self.currentSpeeds := robot.servo.currentSpeed;
+                    for i in Sequence{1..6} do
+                        robot.servo->at(i).targetAngle := robot.servo->at(i).currentAngle.round();
+                        robot.servo->at(i).currentSpeed := 0;
+                    end;
+                    self.freezeEndTime := now + freezeTime;
+                    result := null;
+                else
+                    result := 'error';
+                end;
+            else
+                result := 'error';
+            end;
+        end
+
+        execute(robot : BraccioRobot, args : Sequence(String), now : Integer) : String
+        begin
+            if now >= self.freezeEndTime then
+                for i in Sequence{1..6} do
+                    robot.servo->at(i).targetAngle := self.targetPosition->at(i);
+                    robot.servo->at(i).currentSpeed := self.currentSpeeds->at(i);
+                end;
+                result := 'ok';
+            else
+                for i in Sequence{1..6} do
+                    robot.servo->at(i).currentAngle := self.frozenPosition->at(i);
+                    robot.servo->at(i).targetAngle := robot.servo->at(i).currentAngle.round();
+                    robot.servo->at(i).currentSpeed := 0;
+                end;
+                result := null;
+            end
+        end
+
+end
+
 class CommandMonitor < RobotMonitor
 
     attributes

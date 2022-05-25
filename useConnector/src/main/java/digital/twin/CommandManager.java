@@ -20,6 +20,8 @@ public class CommandManager extends InputManager {
         String commandName = hash.get("name");
         if ("moveto".equals(commandName)) {
             return "MoveToPositionCommand";
+        } else if ("freeze".equals(commandName)) {
+            return "FreezeCommand";
         }
         throw new RuntimeException("Invalid command: " + commandName);
     }
