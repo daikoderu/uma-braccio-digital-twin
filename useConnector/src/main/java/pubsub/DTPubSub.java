@@ -4,6 +4,7 @@ import digital.twin.CommandManager;
 import digital.twin.CommandResultManager;
 import digital.twin.DTUseFacade;
 import digital.twin.OutputSnapshotsManager;
+import plugin.DriverConfig;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPubSub;
 import utils.DTLogger;
@@ -66,7 +67,7 @@ public class DTPubSub extends JedisPubSub {
                 case TIME_CHANNEL: // Update USE model's timestamp
                     int dlTime = TimePubService.getDTTimestampInDataLake(jedis);
                     int useTime = useApi.getCurrentTime();
-                    int ticks = (dlTime - useTime) / TimePubService.TICK_PERIOD_MS;
+                    int ticks = (dlTime - useTime) / DriverConfig.TICK_PERIOD_MS;
                     if (ticks > 0) {
                         useApi.advanceTime(ticks);
                     }

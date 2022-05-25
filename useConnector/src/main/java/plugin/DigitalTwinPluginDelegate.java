@@ -20,10 +20,6 @@ import java.util.concurrent.Executors;
  */
 public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
 
-    public static final long SLEEP_TIME_MS = 5000;
-
-    private static final int NUM_EXECUTOR_POOL_THREADS = 10;
-    private static final String REDIS_HOSTNAME = "localhost";
     private static final String DL_EXECUTION_ID = "executionId";
     private static final String DL_COMMAND_COUNTER = "commandCounter";
 
@@ -65,7 +61,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
         setApi(pluginAction);
         JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(20);
-        jedisPool = new JedisPool(poolConfig, REDIS_HOSTNAME);
+        jedisPool = new JedisPool(poolConfig, DriverConfig.REDIS_HOSTNAME);
         if (checkConnectionWithDatabase()) {
 
             // Initialize USE model
@@ -149,7 +145,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
      */
     private void ensureThreadPool() {
         if (executor == null || executor.isShutdown()) {
-            executor = Executors.newFixedThreadPool(NUM_EXECUTOR_POOL_THREADS);
+            executor = Executors.newFixedThreadPool(DriverConfig.NUM_EXECUTOR_POOL_THREADS);
         }
     }
 

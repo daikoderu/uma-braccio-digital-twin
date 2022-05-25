@@ -1,7 +1,7 @@
 package pubsub;
 
 import digital.twin.OutputManager;
-import plugin.DigitalTwinPluginDelegate;
+import plugin.DriverConfig;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import utils.DTLogger;
@@ -22,7 +22,7 @@ public class OutPubService extends PubService {
 	 * @param outputManager Manager to use to check for instances.
 	 */
 	public OutPubService(String channel, JedisPool jedisPool, OutputManager outputManager) {
-		super(channel, DigitalTwinPluginDelegate.SLEEP_TIME_MS);
+		super(channel, DriverConfig.SLEEP_TIME_MS);
 		this.jedisPool = jedisPool;
 		this.output = outputManager;
 	}

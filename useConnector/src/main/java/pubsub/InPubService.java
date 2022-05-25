@@ -1,7 +1,7 @@
 package pubsub;
 
 import digital.twin.InputManager;
-import plugin.DigitalTwinPluginDelegate;
+import plugin.DriverConfig;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import utils.DTLogger;
@@ -23,7 +23,7 @@ public class InPubService extends PubService {
      * @param inputManager Manager to use to check for Data Lake objects.
      */
     public InPubService(String channel, JedisPool jedisPool, InputManager inputManager) {
-        super(channel, DigitalTwinPluginDelegate.SLEEP_TIME_MS);
+        super(channel, DriverConfig.SLEEP_TIME_MS);
         this.jedisPool = jedisPool;
         this.input = inputManager;
     }
