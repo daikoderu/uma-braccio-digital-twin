@@ -141,7 +141,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     }
 
     /**
-     * Creates a thread pool if it has not been created or is not active
+     * Creates a thread pool if it has not been created or is not active.
      */
     private void ensureThreadPool() {
         if (executor == null || executor.isShutdown()) {

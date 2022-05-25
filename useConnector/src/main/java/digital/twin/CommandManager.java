@@ -4,6 +4,10 @@ import pubsub.DTPubSub;
 
 import java.util.Map;
 
+/**
+ * @author Paula Muñoz, Daniel Pérez - University of Málaga
+ * InputManager that retrieves all Commands in the data lake and converts them to USE objects.
+ */
 public class CommandManager extends InputManager {
 
     public CommandManager(DTUseFacade useApi) {

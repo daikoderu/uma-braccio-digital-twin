@@ -20,7 +20,7 @@ public class SubService implements Runnable {
 	 * 
 	 * @param useApi USE API facade instance to interact with the currently displayed object diagram.
 	 * @param jedisPool	Jedis client pool, connected to the Data Lake
-	 * @param subscribedChannel	Channel you want to subscribe to
+	 * @param subscribedChannel	Channel to subscribe to
 	 */
 	public SubService(DTUseFacade useApi, JedisPool jedisPool, String subscribedChannel) {
 		this.useApi = useApi;

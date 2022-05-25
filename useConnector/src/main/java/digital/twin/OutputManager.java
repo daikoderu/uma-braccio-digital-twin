@@ -162,6 +162,7 @@ public abstract class OutputManager {
      * @param jedis An instance of the Jedis client to access the data lake.
      * @param objectTypeAndId The ID of the object to generate the registers for.
      * @param attributeName The name of the attribute to generate the registers for.
+     * @param type The type of the attribute to generate the registers for.
      * @param attributeValue The value of the attribute to generate the registers for.
      */
     protected abstract void addAttributeQueryRegisters(

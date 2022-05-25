@@ -6,6 +6,11 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import utils.DTLogger;
 
+/**
+ * @author Daniel Pérez - University of Málaga
+ * Class for a thread that generates ("publishes") events whenever the current timestamp
+ * of the Digital Twin, according to the Data Lake, is greater than the USE model's timestamp.
+ */
 public class TimePubService extends PubService {
 
     public static final String DT_NOW = "DTnow";
@@ -15,7 +20,6 @@ public class TimePubService extends PubService {
 
     /**
      * Default constructor.
-     *
      * @param channel The channel to send the event to
      * @param jedisPool The Jedis client pool connected to the data lake
      * @param useApi USE API facade instance to interact with the currently displayed object diagram.
@@ -26,6 +30,10 @@ public class TimePubService extends PubService {
         this.useApi = useApi;
     }
 
+    /**
+     * Publish an event to make the clock tick if the Data Lake timestamp is greater than
+     * the USE model's
+     */
     @Override
     protected void action() {
         try (Jedis jedis = jedisPool.getResource()) {

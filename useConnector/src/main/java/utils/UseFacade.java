@@ -44,6 +44,13 @@ public class UseFacade {
     // Object Creation and Destruction
     // ============================================================================================
 
+    /**
+     * Creates an object in the USE model.
+     * @param className The class of the new object.
+     * @param objectName The name to assign to the object.
+     * @return The state of the new object.
+     * @throws MSystemException If some error occurs within the USE API.
+     */
     public MObjectState createObject(String className, String objectName)
             throws MSystemException {
         try {
@@ -56,6 +63,11 @@ public class UseFacade {
         }
     }
 
+    /**
+     * Destroys an object in the USE model.
+     * @param objstate The state of the object to destroy.
+     * @throws UseApiException If some error occurs within the USE API.
+     */
     public void destroyObject(MObjectState objstate) throws UseApiException {
         try {
             mutex.lock();
@@ -225,11 +237,26 @@ public class UseFacade {
     // Operation calls
     // ============================================================================================
 
+    /**
+     * Calls an operation without passing arguments.
+     * @param objstate The object state whose operation to call.
+     * @param operationName The name of the operation to call.
+     * @return A StatementEvaluationResult object.
+     * @throws MSystemException If some error occurs within the USE API.
+     */
     public StatementEvaluationResult callOperation(
             MObjectState objstate, String operationName) throws MSystemException {
         return callOperation(objstate, operationName, (Object) null);
     }
 
+    /**
+     * Calls an operation
+     * @param objstate The object state whose operation to call.
+     * @param operationName The name of the operation to call.
+     * @param args Arguments to pass to the operation.
+     * @return A StatementEvaluationResult object.
+     * @throws MSystemException If some error occurs within the USE API.
+     */
     public StatementEvaluationResult callOperation(
             MObjectState objstate, String operationName, Object... args) throws MSystemException {
         MObject mobject = objstate.object();

@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * @author Paula Muñoz, Daniel Pérez - University of Málaga
+ * Class that retrieves all objects from a data lake and converts them to USE objects.
+ */
 public abstract class InputManager {
 
     protected static final String TIMESTAMP = "timestamp";
@@ -62,6 +66,13 @@ public abstract class InputManager {
     }
 
     /**
+     * Returns the name of the class a Redis hash should be converted to.
+     * @param hash The Redis hash to convert.
+     * @return The name of the class.
+     */
+    protected abstract String getTargetClass(Map<String, String> hash);
+
+    /**
      * Auxiliary method to store the object in the USE model, extracted from the Data Lake.
      * @param jedis An instance of the Jedis client to access the data lake.
      * @param key The key of the object to store.
@@ -113,8 +124,6 @@ public abstract class InputManager {
         useApi.updateDerivedValues();
 
     }
-
-    protected abstract String getTargetClass(Map<String, String> hash);
 
     private int getNumberOfValues(Map<String, String> hash, String attribute) {
         int result = 0;

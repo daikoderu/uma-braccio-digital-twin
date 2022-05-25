@@ -85,7 +85,7 @@ public class DTPubSub extends JedisPubSub {
 
     /**
      * This method is called every time a process subscribes to one of the channels.
-     * @param channel Channel to which to subscribe
+     * @param channel Channel to subscribe to
      * @param subscribedChannels Channel identifier
      */
     @Override
