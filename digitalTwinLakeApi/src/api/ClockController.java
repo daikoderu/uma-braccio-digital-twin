@@ -28,12 +28,11 @@ public class ClockController implements Runnable {
         }
     }
 
-    public void play() {
-        ticking = true;
+    public boolean isTicking() {
+        return ticking;
     }
-
-    public void pause() {
-        ticking = false;
+    public void setTicking(boolean ticking) {
+        this.ticking = ticking;
     }
 
     public void stop() {

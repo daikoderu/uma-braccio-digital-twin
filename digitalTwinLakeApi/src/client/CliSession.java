@@ -5,25 +5,23 @@ import api.DTDLConnection;
 import api.DTDataLake;
 import org.javatuples.Pair;
 
-import java.io.PrintStream;
-import java.util.Scanner;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BiConsumer;
 
 public class CliSession {
 
-    private static final int EXIT_SUCCESS = 0;
-    private static final int EXIT_FAILURE = 1;
-    private static final int DEFAULT_PORT = 6379;
+    public static final int EXIT_SUCCESS = 0;
+    public static final int EXIT_FAILURE = 1;
+    public static final int DEFAULT_PORT = 6379;
 
-    private String twinId, executionId;
-    private DTDLConnection connection;
-    private final Scanner in;
-    private final PrintStream out;
-    private final PrintStream err;
+    private final CliContext context;
+    private final Map<String, BiConsumer<String[], CliContext>> commandTypes;
 
     public CliSession() {
-        out = System.out;
-        err = System.err;
-        in = new Scanner(System.in);
+        context = new CliContext();
+        commandTypes = new HashMap<>();
+        loadShellCommands();
     }
 
     public int start() {
@@ -36,71 +34,58 @@ public class CliSession {
     }
 
     private int initialize() {
-        out.print("Enter Twin Id: ");
-        twinId = in.nextLine().trim();
+        context.out.print("Enter Twin Id: ");
+        context.twinId = context.in.nextLine().trim();
 
-        out.print("Enter Data Lake host and port (<host>[:<port>]): ");
+        context.out.print("Enter Data Lake host and port (<host>[:<port>]): ");
         Pair<String, Integer> hostport;
         do {
-            hostport = parseHostAndPort(in.nextLine().trim());
+            hostport = parseHostAndPort(context.in.nextLine().trim());
         } while (hostport == null);
 
         // Connect to the database
-        connection = new DTDLConnection(hostport.getValue0(), hostport.getValue1());
+        context.connection = new DTDLConnection(hostport.getValue0(), hostport.getValue1());
         if (!checkConnectionWithDatabase()) {
             return EXIT_FAILURE;
         }
 
         // Obtain executionId
-        try (DTDataLake dl = connection.getResource()) {
-            executionId = dl.getCurrentExecutionId();
-            if (executionId == null) {
-                err.println("Error: executionId not found. Make sure the USE model is correctly initialized.");
+        try (DTDataLake dl = context.connection.getResource()) {
+            context.executionId = dl.getCurrentExecutionId();
+            if (context.executionId == null) {
+                context.err.println("Error: executionId not found. " +
+                        "Make sure the USE model is correctly initialized.");
                 return EXIT_FAILURE;
             }
         } catch (Exception ex) {
-            err.println("An error ocurred:");
+            context.err.println("An error ocurred:");
             ex.printStackTrace();
             return EXIT_FAILURE;
         }
 
+        createClockController();
         return EXIT_SUCCESS;
     }
 
     private int runShell() {
-        boolean quit = false;
-        String[] tokens;
-
-        // Create auto-ticker
-        ClockController ticker = new ClockController(connection);
-        Thread tickerThread = new Thread(ticker);
-        tickerThread.start();
-
-        while (!quit) {
-            out.print(twinId + ":" + executionId + "> ");
+        while (!context.quitting) {
+            String[] tokens;
+            context.out.print(context.twinId + ":" + context.executionId + "> ");
             do {
                 tokens = prompt();
             } while (tokens.length == 0 || tokens[0].isEmpty());
 
-            switch (tokens[0]) {
-                case "quit" -> {
-                    ticker.stop();
-                    try {
-                        tickerThread.join();
-                    } catch (InterruptedException ignored) { }
-                    quit = true;
-                }
-                case "play" -> ticker.play();
-                case "pause" -> ticker.pause();
-                default -> {
-                    String[] args = new String[tokens.length - 1];
-                    System.arraycopy(tokens, 1, args, 0, tokens.length - 1);
-                    try (DTDataLake dl = connection.getResource()) {
-                        dl.putCommand(twinId, tokens[0], args);
-                    } catch (Exception ex) {
-                        err.println("An error ocurred:");
-                        ex.printStackTrace();
-                    }
+            String[] args = new String[tokens.length - 1];
+            System.arraycopy(tokens, 1, args, 0, tokens.length - 1);
+
+            if (commandTypes.containsKey(tokens[0])) {
+                commandTypes.get(tokens[0]).accept(args, context);
+            } else {
+                try (DTDataLake dl = context.connection.getResource()) {
+                    dl.putCommand(context.twinId, tokens[0], args);
+                } catch (Exception ex) {
+                    context.err.println("An error ocurred:");
+                    ex.printStackTrace();
                 }
             }
         }
@@ -108,14 +93,14 @@ public class CliSession {
     }
 
     private String[] prompt() {
-        return in.nextLine().trim().split(" +");
+        return context.in.nextLine().trim().split(" +");
     }
 
     private boolean checkConnectionWithDatabase() {
-        try (DTDataLake dl = connection.getResource()) {
+        try (DTDataLake dl = context.connection.getResource()) {
             return dl.ping();
         } catch (Exception ex) {
-            err.println("Data lake connection error:");
+            context.err.println("Data lake connection error:");
             ex.printStackTrace();
             return false;
         }
@@ -138,6 +123,17 @@ public class CliSession {
         } else {
             return new Pair<>(input, DEFAULT_PORT);
         }
+    }
+
+    private void createClockController() {
+        context.clockController = new ClockController(context.connection);
+        context.clockControllerThread = new Thread(context.clockController);
+        context.clockControllerThread.start();
+    }
+
+    private void loadShellCommands() {
+        commandTypes.put("quit", ShellCommands::quit);
+        commandTypes.put("dtclock", ShellCommands::dtclock);
     }
 
 }
