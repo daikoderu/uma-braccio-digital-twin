@@ -8,6 +8,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.StringJoiner;
 
+/**
+ * @author Daniel Pérez - University of Málaga
+ * API to access the Data Lake.
+ */
+@SuppressWarnings("unused")
 public class DTDataLake implements Closeable {
 
     private final Jedis jedis;
@@ -25,6 +30,10 @@ public class DTDataLake implements Closeable {
         return jedis.ping().equalsIgnoreCase("PONG");
     }
 
+    /**
+     * Gets the current time for the Physical Twin.
+     * @return The value of the Physical Twin's clock.
+     */
     public int getPTTime() {
         if (jedis.exists("PTnow")) {
             return Integer.parseInt(jedis.get("PTnow"));
@@ -32,6 +41,11 @@ public class DTDataLake implements Closeable {
             return 0;
         }
     }
+
+    /**
+     * Gets the current time for the Digital Twin.
+     * @return The value of the Digital Twin's clock.
+     */
     public int getDTTime() {
         if (jedis.exists("DTnow")) {
             return Integer.parseInt(jedis.get("DTnow"));
@@ -39,6 +53,11 @@ public class DTDataLake implements Closeable {
             return 0;
         }
     }
+
+    /**
+     * Advances the Digital Twin's time.
+     * @param amount The number of milliseconds to advance.
+     */
     public void advanceDTTime(int amount) {
         if (amount < 0) {
             throw new IllegalArgumentException("amount must be non-negative");
@@ -46,6 +65,10 @@ public class DTDataLake implements Closeable {
         jedis.incrBy("DTnow", amount);
     }
 
+    /**
+     * Returns the ID of the current execution.
+     * @return The ID of the current execution.
+     */
     public String getCurrentExecutionId() {
         if (jedis.exists("executionId")) {
             return jedis.get("executionId");
@@ -54,6 +77,10 @@ public class DTDataLake implements Closeable {
         }
     }
 
+    /**
+     * Returns the current value of the command counter.
+     * @return The current value of the command counter.
+     */
     public int getCommandCounter() {
         if (jedis.exists("commandCounter")) {
             return Integer.parseInt(jedis.get("commandCounter"));
@@ -62,7 +89,15 @@ public class DTDataLake implements Closeable {
         }
     }
 
-    public void putCommand(String twinId, String command, String[] args) {
+    /**
+     * Puts a command in the Data Lake.
+     * @param twinId The ID of the twin the command refers to.
+     * @param target Whether to target the Physical Twin, the Digital Twin, or both.
+     * @param command The name of the command to send.
+     * @param args The arguments to send.
+     * @return The ID of the new command.
+     */
+    public int putCommand(String twinId, CommandTarget target, String command, String[] args) {
         Map<String, String> hash = new HashMap<>();
         incrCommandCounter();
         StringJoiner argJoiner = new StringJoiner(" ", "", "");
@@ -78,13 +113,19 @@ public class DTDataLake implements Closeable {
         hash.put("name", command);
         hash.put("arguments", argJoiner.toString());
         hash.put("commandId", commandId + "");
-        jedis.hset("DTCommand:" + objectId, hash);
-        jedis.zadd("DTCommand_UNPROCESSED", commandId, "DTCommand:" + objectId);
-        jedis.hset("PTCommand:" + objectId, hash);
-        jedis.zadd("PTCommand_UNPROCESSED", commandId, "PTCommand:" + objectId);
+
+        if (target.isPhysical) {
+            jedis.hset("PTCommand:" + objectId, hash);
+            jedis.zadd("PTCommand_UNPROCESSED", commandId, "PTCommand:" + objectId);
+        }
+        if (target.isDigital) {
+            jedis.hset("DTCommand:" + objectId, hash);
+            jedis.zadd("DTCommand_UNPROCESSED", commandId, "DTCommand:" + objectId);
+        }
+        return commandId;
     }
 
-    public void incrCommandCounter() {
+    private void incrCommandCounter() {
         jedis.incr("commandCounter");
     }
 

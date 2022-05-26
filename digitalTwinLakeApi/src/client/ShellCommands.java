@@ -4,7 +4,7 @@ import api.ClockController;
 
 public abstract class ShellCommands {
 
-    public static void quit(String[] args, CliContext context) {
+    public static void quit(CliContext context) {
         context.clockController.stop();
         try {
             context.clockControllerThread.join();

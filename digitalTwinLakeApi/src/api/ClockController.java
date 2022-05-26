@@ -1,5 +1,9 @@
 package api;
 
+/**
+ * @author Daniel Pérez - University of Málaga
+ * Runnable to automatically make time advance in the Digital Twin through the Data Lake.
+ */
 public class ClockController implements Runnable {
 
     private static final int TICK_RESOLUTION_MS = 100;

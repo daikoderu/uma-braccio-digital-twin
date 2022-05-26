@@ -1,6 +1,7 @@
 package client;
 
 import api.ClockController;
+import api.CommandTarget;
 import api.DTDLConnection;
 import api.DTDataLake;
 import org.javatuples.Pair;
@@ -82,7 +83,7 @@ public class CliSession {
                 commandTypes.get(tokens[0]).accept(args, context);
             } else {
                 try (DTDataLake dl = context.connection.getResource()) {
-                    dl.putCommand(context.twinId, tokens[0], args);
+                    dl.putCommand(context.twinId, CommandTarget.BOTH, tokens[0], args);
                 } catch (Exception ex) {
                     context.err.println("An error ocurred:");
                     ex.printStackTrace();
@@ -132,7 +133,7 @@ public class CliSession {
     }
 
     private void loadShellCommands() {
-        commandTypes.put("quit", ShellCommands::quit);
+        commandTypes.put("quit", (args, context1) -> ShellCommands.quit(context1));
         commandTypes.put("dtclock", ShellCommands::dtclock);
     }
 
