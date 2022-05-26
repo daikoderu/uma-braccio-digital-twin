@@ -65,6 +65,8 @@ public class CliSession {
         }
 
         createClockController();
+        context.out.println("Connection with Data Lake successful! Now you can send commands to the twins.");
+        context.out.println("Type 'quit' to quit.");
         return EXIT_SUCCESS;
     }
 
@@ -83,7 +85,8 @@ public class CliSession {
                 commandTypes.get(tokens[0]).accept(args, context);
             } else {
                 try (DTDataLake dl = context.connection.getResource()) {
-                    dl.putCommand(context.twinId, CommandTarget.BOTH, tokens[0], args);
+                    int commandId = dl.putCommand(context.twinId, CommandTarget.BOTH, tokens[0], args);
+                    context.out.println("Command sent to both twins with ID = " + commandId);
                 } catch (Exception ex) {
                     context.err.println("An error ocurred:");
                     ex.printStackTrace();
