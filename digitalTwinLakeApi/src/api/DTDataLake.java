@@ -5,6 +5,7 @@ import redis.clients.jedis.JedisPool;
 
 import java.io.Closeable;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
@@ -26,6 +27,10 @@ public class DTDataLake implements Closeable {
         jedis.close();
     }
 
+    /**
+     * Performs a Redis ping.
+     * @return True if the ping was answered with PONG.
+     */
     public boolean ping() {
         return jedis.ping().equalsIgnoreCase("PONG");
     }
@@ -89,6 +94,9 @@ public class DTDataLake implements Closeable {
         }
     }
 
+    // Commands
+    // --------------------------------------------------------------------------------------------
+
     /**
      * Puts a command in the Data Lake.
      * @param twinId The ID of the twin the command refers to.
@@ -128,5 +136,57 @@ public class DTDataLake implements Closeable {
     private void incrCommandCounter() {
         jedis.incr("commandCounter");
     }
+
+    // Snapshots
+    // --------------------------------------------------------------------------------------------
+
+    /**
+     * Returns an output snapshot from the Digital Twin.
+     * @param twinId The ID of the twin whose snapshot to retrieve.
+     * @param executionId The ID of the execution to consider.
+     * @param timestamp The timestamp of the snapshot.
+     * @return The resulting snapshot, or null if it does not exist.
+     */
+    public OutputSnapshot getDTOutputSnapshot(String twinId, String executionId, int timestamp) {
+        return null;
+    }
+
+    /**
+     * Returns an output snapshot from the Digital Twin during the current execution.
+     * @param twinId The ID of the twin whose snapshot to retrieve.
+     * @param timestamp The timestamp of the snapshot.
+     * @return The resulting snapshot, or null if it does not exist.
+     */
+    public OutputSnapshot getDTOutputSnapshot(String twinId, int timestamp) {
+        return getDTOutputSnapshot(twinId, getCurrentExecutionId(), timestamp);
+    }
+
+    /**
+     * Returns a list of output snapshots from the Digital Twin generated during a time interval.
+     * @param twinId The ID of the twin whose snapshot to retrieve.
+     * @param executionId The ID of the execution to consider.
+     * @param timestampFrom The first timestamp to return results from.
+     * @param timestampTo The last timestamp to return results from.
+     * @return The resulting snapshot, or null if it does not exist.
+     */
+    public List<OutputSnapshot> getDTOutputSnapshotsInRange(
+            String twinId, String executionId, int timestampFrom, int timestampTo) {
+        return null;
+    }
+
+    /**
+     * Returns a list of output snapshots from the Digital Twin generated during a time interval
+     * during the current execution.
+     * @param twinId The ID of the twin whose snapshot to retrieve.
+     * @param timestampFrom The first timestamp to return results from.
+     * @param timestampTo The last timestamp to return results from.
+     * @return The resulting snapshot, or null if it does not exist.
+     */
+    public List<OutputSnapshot> getDTOutputSnapshotsInRange(
+            String twinId, int timestamp, int timestampFrom, int timestampTo) {
+        return getDTOutputSnapshotsInRange(twinId, getCurrentExecutionId(), timestampFrom, timestampTo);
+    }
+
+    // same for physical twin
 
 }
