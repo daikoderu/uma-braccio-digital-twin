@@ -3,6 +3,7 @@
 /shell/_paths.bat
 /useConnector/build
 /useConnector/target
+/digitalTwinLakeApi/out
 venv
 
 __pycache__
