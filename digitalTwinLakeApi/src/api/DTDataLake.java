@@ -4,10 +4,8 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
 import java.io.Closeable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.StringJoiner;
+import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * @author Daniel Pérez - University of Málaga
@@ -15,6 +13,9 @@ import java.util.StringJoiner;
  */
 @SuppressWarnings("unused")
 public class DTDataLake implements Closeable {
+
+    private static final String DT_OUTPUT_SNAPSHOT = "DTOutputSnapshot";
+    private static final String PT_OUTPUT_SNAPSHOT = "PTOutputSnapshot";
 
     private final Jedis jedis;
 
@@ -137,7 +138,7 @@ public class DTDataLake implements Closeable {
         jedis.incr("commandCounter");
     }
 
-    // Snapshots
+    // Snapshots (Digital Twin)
     // --------------------------------------------------------------------------------------------
 
     /**
@@ -148,7 +149,8 @@ public class DTDataLake implements Closeable {
      * @return The resulting snapshot, or null if it does not exist.
      */
     public OutputSnapshot getDTOutputSnapshot(String twinId, String executionId, int timestamp) {
-        return null;
+        String objectId = DT_OUTPUT_SNAPSHOT + ":" + twinId + ":" + executionId + ":" + timestamp;
+        return deserialize(objectId);
     }
 
     /**
@@ -167,11 +169,12 @@ public class DTDataLake implements Closeable {
      * @param executionId The ID of the execution to consider.
      * @param timestampFrom The first timestamp to return results from.
      * @param timestampTo The last timestamp to return results from.
-     * @return The resulting snapshot, or null if it does not exist.
+     * @return A list of snapshots.
      */
     public List<OutputSnapshot> getDTOutputSnapshotsInRange(
             String twinId, String executionId, int timestampFrom, int timestampTo) {
-        return null;
+        Set<String> keys = jedis.zrangeByScore(DT_OUTPUT_SNAPSHOT, timestampFrom, timestampTo);
+        return deserialize(keys, (x) -> sameTwinAndExecutionId(x, twinId, executionId), 0, -1);
     }
 
     /**
@@ -180,13 +183,174 @@ public class DTDataLake implements Closeable {
      * @param twinId The ID of the twin whose snapshot to retrieve.
      * @param timestampFrom The first timestamp to return results from.
      * @param timestampTo The last timestamp to return results from.
-     * @return The resulting snapshot, or null if it does not exist.
+     * @return A list of snapshots.
      */
     public List<OutputSnapshot> getDTOutputSnapshotsInRange(
             String twinId, int timestamp, int timestampFrom, int timestampTo) {
         return getDTOutputSnapshotsInRange(twinId, getCurrentExecutionId(), timestampFrom, timestampTo);
     }
 
-    // same for physical twin
+    /**
+     * Returns a list of the latest <i>amount</i> snapshots taken to the Digital Twin.
+     * @param twinId The ID of the twin whose snapshot to retrieve.
+     * @param executionId The ID of the execution to consider.
+     * @param amount The amount of snapshots to retrieve.
+     * @return A list of up to <i>amount</i> snapshots.
+     */
+    public List<OutputSnapshot> getDTLatestOutputSnapshots(
+            String twinId, String executionId, int amount) {
+        Set<String> keys = jedis.zrange(DT_OUTPUT_SNAPSHOT, 0, -1);
+        return deserialize(keys, (x) -> sameTwinAndExecutionId(x, twinId, executionId), 0, -amount);
+    }
+
+    /**
+     * Returns a list of the latest <i>amount</i> snapshots taken to the Digital Twin
+     * during the current execution.
+     * @param twinId The ID of the twin whose snapshot to retrieve.
+     * @param amount The amount of snapshots to retrieve.
+     * @return A list of up to <i>amount</i> snapshots.
+     */
+    public List<OutputSnapshot> getDTLatestOutputSnapshots(
+            String twinId, int amount) {
+        return getDTLatestOutputSnapshots(twinId, getCurrentExecutionId(), amount);
+    }
+
+    // Snapshots (Physical Twin)
+    // --------------------------------------------------------------------------------------------
+
+    /**
+     * Returns an output snapshot from the Physical Twin.
+     * @param twinId The ID of the twin whose snapshot to retrieve.
+     * @param executionId The ID of the execution to consider.
+     * @param timestamp The timestamp of the snapshot.
+     * @return The resulting snapshot, or null if it does not exist.
+     */
+    public OutputSnapshot getPTOutputSnapshot(String twinId, String executionId, int timestamp) {
+        String objectId = PT_OUTPUT_SNAPSHOT + ":" + twinId + ":" + executionId + ":" + timestamp;
+        return deserialize(objectId);
+    }
+
+    /**
+     * Returns an output snapshot from the Physical Twin during the current execution.
+     * @param twinId The ID of the twin whose snapshot to retrieve.
+     * @param timestamp The timestamp of the snapshot.
+     * @return The resulting snapshot, or null if it does not exist.
+     */
+    public OutputSnapshot getPTOutputSnapshot(String twinId, int timestamp) {
+        return getPTOutputSnapshot(twinId, getCurrentExecutionId(), timestamp);
+    }
+
+    /**
+     * Returns a list of output snapshots from the Physical Twin generated during a time interval.
+     * @param twinId The ID of the twin whose snapshot to retrieve.
+     * @param executionId The ID of the execution to consider.
+     * @param timestampFrom The first timestamp to return results from.
+     * @param timestampTo The last timestamp to return results from.
+     * @return The resulting snapshot, or null if it does not exist.
+     */
+    public List<OutputSnapshot> getPTOutputSnapshotsInRange(
+            String twinId, String executionId, int timestampFrom, int timestampTo) {
+        Set<String> keys = jedis.zrangeByScore(PT_OUTPUT_SNAPSHOT, timestampFrom, timestampTo);
+        return deserialize(keys, (x) -> sameTwinAndExecutionId(x, twinId, executionId), 0, -1);
+    }
+
+    /**
+     * Returns a list of output snapshots from the Physical Twin generated during a time interval
+     * during the current execution.
+     * @param twinId The ID of the twin whose snapshot to retrieve.
+     * @param timestampFrom The first timestamp to return results from.
+     * @param timestampTo The last timestamp to return results from.
+     * @return The resulting snapshot, or null if it does not exist.
+     */
+    public List<OutputSnapshot> getPTOutputSnapshotsInRange(
+            String twinId, int timestamp, int timestampFrom, int timestampTo) {
+        return getPTOutputSnapshotsInRange(twinId, getCurrentExecutionId(), timestampFrom, timestampTo);
+    }
+
+    /**
+     * Returns a list of the latest <i>amount</i> snapshots taken to the Physical Twin.
+     * @param twinId The ID of the twin whose snapshot to retrieve.
+     * @param executionId The ID of the execution to consider.
+     * @param amount The amount of snapshots to retrieve.
+     * @return A list of up to <i>amount</i> snapshots.
+     */
+    public List<OutputSnapshot> getPTLatestOutputSnapshots(
+            String twinId, String executionId, int amount) {
+        Set<String> keys = jedis.zrange(DT_OUTPUT_SNAPSHOT, 0, -1);
+        return deserialize(keys, (x) -> sameTwinAndExecutionId(x, twinId, executionId), 0, -amount);
+    }
+
+    /**
+     * Returns a list of the latest <i>amount</i> snapshots taken to the Physical Twin
+     * during the current execution.
+     * @param twinId The ID of the twin whose snapshot to retrieve.
+     * @param amount The amount of snapshots to retrieve.
+     * @return A list of up to <i>amount</i> snapshots.
+     */
+    public List<OutputSnapshot> getPTLatestOutputSnapshots(
+            String twinId, int amount) {
+        return getDTLatestOutputSnapshots(twinId, getCurrentExecutionId(), amount);
+    }
+
+    // --------------------------------------------------------------------------------------------
+
+    /**
+     * Deserializes a single output snapshot given its key.
+     * @param key The key to convert to a OutputSnapshot.
+     * @return The resulting snapshot, or null if the snapshot does not exist.
+     */
+    private OutputSnapshot deserialize(String key) {
+        return OutputSnapshot.fromHash(jedis.hgetAll(key));
+    }
+
+    /**
+     * Deserializes a list of output snapshots given a list of their keys, filtering and slicing the
+     * resulting list of snapshots.
+     * @param keys The list of keys whose objects to deserialize.
+     * @param filter A filter for deserializing objects.
+     * @param from The index of the first snapshot to return in the filtered list.
+     * @param to The index of the last snapshot to return in the filtered list.
+     * @return The resulting list, filtered and sliced.
+     */
+    @SuppressWarnings("SameParameterValue")
+    private List<OutputSnapshot> deserialize(
+            Collection<String> keys, Predicate<Map<String, String>> filter, int from, int to) {
+        int maxLength = keys.size();
+        List<OutputSnapshot> result = new ArrayList<>(maxLength);
+        if (maxLength > 0) {
+            int currentPos = 0;
+            from = tomod(from, maxLength);
+            to = tomod(to, maxLength);
+            for (String k : keys) {
+                Map<String, String> hash = jedis.hgetAll(k);
+                if (filter.test(hash)) {
+                    if (currentPos >= from && currentPos <= to) {
+                        result.add(OutputSnapshot.fromHash(hash));
+                    }
+                    currentPos++;
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Converts a number <var>n</var> to its congruent modulo <var>m</var> such that the
+     * result is between 0 and <var>m</var> - 1.
+     * @param n The number to convert.
+     * @param m The modulo to convert to.
+     * @return A number between 0 and <var>m</var> - 1.
+     */
+    private static int tomod(int n, int m) {
+        int result = n % m;
+        if (n < 0) {
+            result += m;
+        }
+        return result;
+    }
+
+    private static boolean sameTwinAndExecutionId(Map<String, String> subject, String twinId, String executionId) {
+        return subject.get("twinId").equals(twinId) && subject.get("executionId").equals(executionId);
+    }
 
 }

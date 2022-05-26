@@ -45,6 +45,13 @@ public class Position {
                 position.getWrist(), position.getWristRotation(), position.getGripper());
     }
 
+    /**
+     * Default constructor.
+     */
+    public Position() {
+        this(90, 90, 90, 90, 90, GRIPPER_CLOSED);
+    }
+
     public int getBase() {
         return base;
     }

@@ -42,6 +42,13 @@ public class ServoVector {
                 position.getWrist(), position.getWristRotation(), position.getGripper());
     }
 
+    /**
+     * Default constructor.
+     */
+    public ServoVector() {
+        this(0, 0, 0, 0, 0, 0);
+    }
+
     public double getBase() {
         return base;
     }
