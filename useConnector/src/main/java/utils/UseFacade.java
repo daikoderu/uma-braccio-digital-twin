@@ -88,13 +88,18 @@ public class UseFacade {
     public List<MObjectState> getObjectsOfClass(String className) {
         List<MObjectState> result = new ArrayList<>();
         MClass mclass = api.getSystem().model().getClass(className);
-        for (MObject o : api.getSystem().state().allObjects()) {
-            if (o.cls().allSupertypes().contains(mclass)) {
-                MObjectState ostate = o.state(api.getSystem().state());
-                result.add(ostate);
+        try {
+            mutex.lock();
+            for (MObject o : api.getSystem().state().allObjects()) {
+                if (o.cls().allSupertypes().contains(mclass)) {
+                    MObjectState ostate = o.state(api.getSystem().state());
+                    result.add(ostate);
+                }
             }
+            return result;
+        } finally {
+            mutex.unlock();
         }
-        return result;
     }
 
     /**
@@ -105,13 +110,18 @@ public class UseFacade {
     public MObjectState getAnyObjectOfClass(String className) {
         MObjectState result = null;
         MClass mclass = api.getSystem().model().getClass(className);
-        for (MObject o : api.getSystem().state().allObjects()) {
-            if (o.cls().allSupertypes().contains(mclass)) {
-                result = (o.state(api.getSystem().state()));
-                break;
+        try {
+            mutex.lock();
+            for (MObject o : api.getSystem().state().allObjects()) {
+                if (o.cls().allSupertypes().contains(mclass)) {
+                    result = (o.state(api.getSystem().state()));
+                    break;
+                }
             }
+            return result;
+        } finally {
+            mutex.unlock();
         }
-        return result;
     }
 
     // Attribute Getters

@@ -24,6 +24,7 @@ public class CommandResultManager extends OutputManager {
     }
 
     protected String getObjectId(MObjectState objstate) {
+        useApi.updateDerivedValues();
         String twinId = useApi.getStringAttribute(objstate, "twinId");
         String executionId = useApi.getStringAttribute(objstate, "executionId");
         int commandId = useApi.getIntegerAttribute(objstate, "commandId");

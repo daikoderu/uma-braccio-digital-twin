@@ -1,8 +1,6 @@
 package client;
 
-import api.ClockController;
 import api.TwinTarget;
-import api.DTDLConnection;
 import api.DTDataLake;
 import org.javatuples.Pair;
 
@@ -16,11 +14,11 @@ public class CliSession {
     public static final int EXIT_FAILURE = 1;
     public static final int DEFAULT_PORT = 6379;
 
-    private final CliContext context;
+    private final CliContext ctx;
     private final Map<String, BiConsumer<String[], CliContext>> commandTypes;
 
     public CliSession() {
-        context = new CliContext();
+        ctx = new CliContext();
         commandTypes = new HashMap<>();
         loadShellCommands();
     }
@@ -35,60 +33,53 @@ public class CliSession {
     }
 
     private int initialize() {
-        context.out.print("Enter Twin Id: ");
-        context.twinId = context.in.nextLine().trim();
+        ctx.setTwinId(ctx.input("Enter Twin Id: "));
 
-        context.out.print("Enter Data Lake host and port (<host>[:<port>]): ");
         Pair<String, Integer> hostport;
         do {
-            hostport = parseHostAndPort(context.in.nextLine().trim());
+            hostport = parseHostAndPort(ctx.input("Enter Data Lake host and port (<host>[:<port>]): "));
         } while (hostport == null);
 
         // Connect to the database
-        context.connection = new DTDLConnection(hostport.getValue0(), hostport.getValue1());
+        ctx.setupConnectionWithDataLake(hostport.getValue0(), hostport.getValue1());
         if (!checkConnectionWithDatabase()) {
             return EXIT_FAILURE;
         }
 
         // Obtain executionId
-        try (DTDataLake dl = context.connection.getResource()) {
-            context.executionId = dl.getCurrentExecutionId();
-            if (context.executionId == null) {
-                context.err.println("Error: executionId not found. " +
+        try (DTDataLake dl = ctx.getDataLakeResource()) {
+            ctx.setExecutionId(dl.getCurrentExecutionId());
+            if (ctx.getExecutionId() == null) {
+                ctx.error("Error: executionId not found. " +
                         "Make sure the USE model is correctly initialized.");
                 return EXIT_FAILURE;
             }
         } catch (Exception ex) {
-            context.err.println("An error ocurred:");
+            ctx.error("An error ocurred:");
             ex.printStackTrace();
             return EXIT_FAILURE;
         }
 
-        createClockController();
-        context.out.println("Connection with Data Lake successful! Now you can send commands to the twins.");
-        context.out.println("Type 'quit' to quit.");
+        ctx.createClockController();
+        ctx.print("Connection with Data Lake successful! Now you can send commands to the twins.");
+        ctx.print("Type 'quit' to quit.");
         return EXIT_SUCCESS;
     }
 
     private int runShell() {
-        while (!context.quitting) {
-            String[] tokens;
-            context.out.print(context.twinId + ":" + context.executionId + "> ");
-            do {
-                tokens = prompt();
-            } while (tokens.length == 0 || tokens[0].isEmpty());
-
+        while (!ctx.isQuitting()) {
+            String[] tokens = prompt();
             String[] args = new String[tokens.length - 1];
             System.arraycopy(tokens, 1, args, 0, tokens.length - 1);
 
             if (commandTypes.containsKey(tokens[0])) {
-                commandTypes.get(tokens[0]).accept(args, context);
+                commandTypes.get(tokens[0]).accept(args, ctx);
             } else {
-                try (DTDataLake dl = context.connection.getResource()) {
-                    int commandId = dl.forTwin(context.twinId).putCommand(TwinTarget.BOTH, tokens[0], args);
-                    context.out.println("Command sent to both twins with ID = " + commandId);
+                try (DTDataLake dl = ctx.getDataLakeResource()) {
+                    int commandId = dl.forTwin(ctx.getTwinId()).putCommand(TwinTarget.BOTH, tokens[0], args);
+                    ctx.print("Command sent to both twins with ID = " + commandId);
                 } catch (Exception ex) {
-                    context.err.println("An error ocurred:");
+                    ctx.print("An error ocurred:");
                     ex.printStackTrace();
                 }
             }
@@ -97,14 +88,19 @@ public class CliSession {
     }
 
     private String[] prompt() {
-        return context.in.nextLine().trim().split(" +");
+        String[] tokens;
+        String prompt = ctx.getTwinId() + ":" + ctx.getExecutionId() + "> ";
+        do {
+            tokens = ctx.input(prompt).split(" +");
+        } while (tokens.length == 0 || tokens[0].isEmpty());
+        return tokens;
     }
 
     private boolean checkConnectionWithDatabase() {
-        try (DTDataLake dl = context.connection.getResource()) {
+        try (DTDataLake dl = ctx.getDataLakeResource()) {
             return dl.ping();
         } catch (Exception ex) {
-            context.err.println("Data lake connection error:");
+            ctx.error("Data lake connection error:");
             ex.printStackTrace();
             return false;
         }
@@ -127,12 +123,6 @@ public class CliSession {
         } else {
             return new Pair<>(input, DEFAULT_PORT);
         }
-    }
-
-    private void createClockController() {
-        context.clockController = new ClockController(context.connection);
-        context.clockControllerThread = new Thread(context.clockController);
-        context.clockControllerThread.start();
     }
 
     private void loadShellCommands() {
