@@ -89,6 +89,35 @@ public class Position {
         this.gripper = clamp(gripper, GRIPPER_OPEN, GRIPPER_CLOSED);
     }
 
+    public int get(int index) {
+        return switch (index) {
+            case 0 -> getBase();
+            case 1 -> getShoulder();
+            case 2 -> getElbow();
+            case 3 -> getWrist();
+            case 4 -> getWristRotation();
+            case 5 -> getGripper();
+            default -> throw new IllegalArgumentException("Index must be between 0 and 5");
+        };
+    }
+
+    public void set(int index, int value) {
+        switch (index) {
+            case 0 -> setBase(value);
+            case 1 -> setShoulder(value);
+            case 2 -> setElbow(value);
+            case 3 -> setWrist(value);
+            case 4 -> setWristRotation(value);
+            case 5 -> setGripper(value);
+            default -> throw new IllegalArgumentException("Index must be between 0 and 5");
+        }
+    }
+
+    public String toString() {
+        return "(" + base + ", " + shoulder + ", " + elbow + ", "
+                + wrist + ", " + wristRotation + ", " + gripper +")";
+    }
+
     private static int clamp(int val, int min, int max) {
         return Math.max(min, Math.min(val, max));
     }

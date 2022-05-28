@@ -1,7 +1,7 @@
 package client;
 
 import api.ClockController;
-import api.CommandTarget;
+import api.TwinTarget;
 import api.DTDLConnection;
 import api.DTDataLake;
 import org.javatuples.Pair;
@@ -85,7 +85,7 @@ public class CliSession {
                 commandTypes.get(tokens[0]).accept(args, context);
             } else {
                 try (DTDataLake dl = context.connection.getResource()) {
-                    int commandId = dl.putCommand(context.twinId, CommandTarget.BOTH, tokens[0], args);
+                    int commandId = dl.forTwin(context.twinId).putCommand(TwinTarget.BOTH, tokens[0], args);
                     context.out.println("Command sent to both twins with ID = " + commandId);
                 } catch (Exception ex) {
                     context.err.println("An error ocurred:");
@@ -138,6 +138,7 @@ public class CliSession {
     private void loadShellCommands() {
         commandTypes.put("quit", (args, context1) -> ShellCommands.quit(context1));
         commandTypes.put("dtclock", ShellCommands::dtclock);
+        commandTypes.put("test", ShellCommands::test);
     }
 
 }

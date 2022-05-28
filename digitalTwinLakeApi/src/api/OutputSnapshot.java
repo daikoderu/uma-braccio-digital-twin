@@ -2,6 +2,10 @@ package api;
 
 import java.util.Map;
 
+/**
+ * Class that contains all the information associated to an output snapshot.
+ */
+@SuppressWarnings("unused")
 public class OutputSnapshot {
 
     private int timestamp;
@@ -28,11 +32,46 @@ public class OutputSnapshot {
             result.currentAngles = new Position();
             result.targetAngles = new Position();
             result.currentSpeeds = new ServoVector();
+            for (int i = 0; i < 6; i++) {
+                float currentAngle = Float.parseFloat(hash.get("currentAngles_" + (i + 1)));
+                int targetAngle = Integer.parseInt(hash.get("targetAngles_" + (i + 1)));
+                float currentSpeed = Float.parseFloat(hash.get("currentSpeeds_" + (i + 1)));
+                result.currentAngles.set(i, Math.round(currentAngle));
+                result.currentAngles.set(i, targetAngle);
+                result.currentAngles.set(i, Math.round(currentSpeed));
+            }
             result.isMoving = !hash.get("moving").equals("0");
             return result;
-        } catch (NumberFormatException ex) {
+        } catch (NumberFormatException | NullPointerException ex) {
             return null;
         }
+    }
+
+    public int getTimestamp() {
+        return timestamp;
+    }
+    public String getTwinId() {
+        return twinId;
+    }
+    public String getExecutionId() {
+        return executionId;
+    }
+    public Position getCurrentAngles() {
+        return new Position(currentAngles);
+    }
+    public Position getTargetAngles() {
+        return new Position(targetAngles);
+    }
+    public ServoVector getCurrentSpeeds() {
+        return new ServoVector(currentSpeeds);
+    }
+    public boolean isMoving() {
+        return isMoving;
+    }
+
+    public String toString() {
+        return "OutputSnapshot:" + twinId + ":" + executionId + ":" + timestamp
+                + "(" + currentAngles + ", " + targetAngles + ", " + currentSpeeds + ")";
     }
 
 }

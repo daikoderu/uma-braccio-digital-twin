@@ -44,32 +44,19 @@ public class OutputSnapshotsManager extends OutputManager {
     }
 
     protected void addObjectQueryRegisters(
-            Jedis jedis, String objectTypeAndId, Map<String, String> values) { }
+            Jedis jedis, String objectTypeAndId, Map<String, String> values) {
+        // Make a snapshot history for each twin and execution ID
+        String idWithNoTimestamp = objectTypeAndId.substring(0, objectTypeAndId.lastIndexOf(':'));
+        int timestamp = Integer.parseInt(values.get("timestamp"));
+        jedis.zadd(idWithNoTimestamp + "_HISTORY", timestamp, objectTypeAndId);
+    }
 
     protected void addAttributeQueryRegisters(
             Jedis jedis, String objectTypeAndId, String attributeName,
-            AttributeType type, String attributeValue) {
-        addHistoryRegister(jedis, objectTypeAndId, attributeName, type, attributeValue);
-    }
+            AttributeType type, String attributeValue) { }
 
     protected void cleanUpModel(MObjectState objstate) throws UseApiException {
         useApi.destroyObject(objstate);
-    }
-
-    /**
-     * Adds a search register to the database to maintain a list of all snapshots for each twin.
-     * @param jedis An instance of the Jedis client to access the data lake.
-     * @param objectTypeAndId The ID of the object to generate the search register for.
-     * @param attributeName The name of the attribute to save.
-     * @param type The type of the attribute to save.
-     * @param attributeValue The value to save, as a Redis value.
-     */
-    private void addHistoryRegister(
-            Jedis jedis, String objectTypeAndId, String attributeName,
-            AttributeType type, String attributeValue) {
-        String idWithNoTimestamp = objectTypeAndId.substring(0, objectTypeAndId.lastIndexOf(':'));
-        double score = type.getScore(attributeValue);
-        jedis.zadd(idWithNoTimestamp + ":" + attributeName + "_HISTORY", score, objectTypeAndId);
     }
 
 }

@@ -6,7 +6,7 @@ package api;
  * both or neither) a command refers to.
  */
 @SuppressWarnings("unused")
-public enum CommandTarget {
+public enum TwinTarget {
 
     NONE        (false, false),
     PHYSICAL    (true,  false),
@@ -16,9 +16,20 @@ public enum CommandTarget {
     public final boolean isPhysical;
     public final boolean isDigital;
 
-    CommandTarget(boolean isPhysical, boolean isDigital) {
+    TwinTarget(boolean isPhysical, boolean isDigital) {
         this.isPhysical = isPhysical;
         this.isDigital = isDigital;
+    }
+
+    void requireOneTwin() {
+        if (this != PHYSICAL && this != DIGITAL) {
+            throw new IllegalArgumentException("Target must be PHYSICAL or DIGITAL");
+        }
+    }
+
+    String getPrefix() {
+        requireOneTwin();
+        return this == PHYSICAL ? "PT" : "DT";
     }
 
 }

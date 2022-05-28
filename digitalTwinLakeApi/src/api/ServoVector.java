@@ -34,12 +34,12 @@ public class ServoVector {
     }
 
     /**
-     * Creates a copy of a given position.
-     * @param position The position to copy.
+     * Creates a copy of a given vector.
+     * @param vector The vector to copy.
      */
-    public ServoVector(Position position) {
-        this(position.getBase(), position.getShoulder(), position.getElbow(),
-                position.getWrist(), position.getWristRotation(), position.getGripper());
+    public ServoVector(ServoVector vector) {
+        this(vector.getBase(), vector.getShoulder(), vector.getElbow(),
+                vector.getWrist(), vector.getWristRotation(), vector.getGripper());
     }
 
     /**
@@ -52,49 +52,67 @@ public class ServoVector {
     public double getBase() {
         return base;
     }
-
     public void setBase(double base) {
         this.base = base;
     }
-
     public double getShoulder() {
         return shoulder;
     }
-
     public void setShoulder(double shoulder) {
         this.shoulder = shoulder;
     }
-
     public double getElbow() {
         return elbow;
     }
-
     public void setElbow(double elbow) {
         this.elbow = elbow;
     }
-
     public double getWrist() {
         return wrist;
     }
-
     public void setWrist(double wrist) {
         this.wrist = wrist;
     }
-
     public double getWristRotation() {
         return wristRotation;
     }
-
     public void setWristRotation(double wristRotation) {
         this.wristRotation = wristRotation;
     }
-
     public double getGripper() {
         return gripper;
     }
-
     public void setGripper(double gripper) {
         this.gripper = gripper;
     }
-    
+
+    public double get(int index) {
+        return switch (index) {
+            case 0 -> getBase();
+            case 1 -> getShoulder();
+            case 2 -> getElbow();
+            case 3 -> getWrist();
+            case 4 -> getWristRotation();
+            case 5 -> getGripper();
+            default -> throw new IllegalArgumentException("Index must be between 0 and 5");
+        };
+    }
+
+    public void set(int index, double value) {
+        switch (index) {
+            case 0 -> setBase(value);
+            case 1 -> setShoulder(value);
+            case 2 -> setElbow(value);
+            case 3 -> setWrist(value);
+            case 4 -> setWristRotation(value);
+            case 5 -> setGripper(value);
+            default -> throw new IllegalArgumentException("Index must be between 0 and 5");
+        }
+    }
+
+    public String toString() {
+        return "(" + base + ", " + shoulder + ", " + elbow + ", "
+                + wrist + ", " + wristRotation + ", " + gripper +")";
+    }
+
 }

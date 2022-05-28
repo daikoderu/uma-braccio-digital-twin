@@ -39,4 +39,12 @@ public abstract class ShellCommands {
         }
     }
 
+    public static void test(String[] args, CliContext context) {
+        if (args.length != 1) {
+            context.err.println("Usage: test <testname>");
+            return;
+        }
+        TestModule.run(args[0], context);
+    }
+
 }

@@ -107,6 +107,9 @@ public abstract class InputManager {
 
             // Save timestamp
             useApi.setAttribute(objstate, TIMESTAMP, useApi.getCurrentTime());
+
+            DTLogger.info(getChannel(), "Saved input object: " + key);
+            useApi.updateDerivedValues();
         } catch (Exception ex) {
             DTLogger.error("Could not create object: " + ex.getMessage());
         }
@@ -115,14 +118,10 @@ public abstract class InputManager {
         double score = jedis.zscore(objectType + "_UNPROCESSED", key);
         jedis.zrem(objectType + "_UNPROCESSED", key);
         jedis.zadd(objectType + "_PROCESSED", score, key);
-        DTLogger.info(getChannel(), "Saved input object: " + key);
+
 
         // Set whenProcessed to indicate when this instance has been saved to the USE model.
         jedis.hset(key, WHEN_PROCESSED, useApi.getCurrentTime() + "");
-
-        // Evaluate derived values
-        useApi.updateDerivedValues();
-
     }
 
     private int getNumberOfValues(Map<String, String> hash, String attribute) {
