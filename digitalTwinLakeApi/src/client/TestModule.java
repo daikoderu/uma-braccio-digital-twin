@@ -1,10 +1,10 @@
 package client;
 
-import api.DLTwin;
-import api.DTDataLake;
-import api.OutputSnapshot;
-import api.TwinTarget;
+import api.*;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,50 +30,30 @@ public class TestModule {
 
     private static void simpleMoves(CliContext context) {
         try (DTDataLake dl = context.connection.getResource()) {
-            int ptStart = dl.getPTTime();
             int dtStart = dl.getDTTime();
+            int ptStart = dl.getPTTime();
             DLTwin twin = dl.forTwin(context.twinId);
 
             context.out.println("Executing test case...");
 
-            Thread.sleep(1000);
-            dl.advanceDTTime(1000);
+            movetoAndWait(dl, twin, new Position(90, 90, 180, 172, 90, 10));
+            movetoAndWait(dl, twin, new Position(90, 55, 170, 86, 90, 10));
+            movetoAndWait(dl, twin, new Position(0, 90, 90, 90, 90, 43));
+            movetoAndWait(dl, twin, new Position(90, 90, 90, 90, 90, 73));
 
-            twin.putCommand(TwinTarget.BOTH, "moveto", "90", "90", "180", "172", "90", "10");
-            Thread.sleep(500);
-            dl.advanceDTTime(5000);
-
-            twin.putCommand(TwinTarget.BOTH, "moveto", "90", "55", "170", "86", "90", "10");
-            Thread.sleep(1000);
-            dl.advanceDTTime(1000);
-
-            twin.putCommand(TwinTarget.BOTH, "moveto", "0", "90", "90", "90", "90", "43");
-            Thread.sleep(1000);
-            dl.advanceDTTime(1000);
-
-            twin.putCommand(TwinTarget.BOTH, "moveto", "90", "90", "90", "90", "90", "73");
-            Thread.sleep(1000);
-            dl.advanceDTTime(1000);
-
-            int ptEnd = dl.getPTTime();
             int dtEnd = dl.getDTTime();
+            int ptEnd = dl.getPTTime();
 
-            context.out.println("Waiting output snapshots...");
-            Thread.sleep(5000);
+            context.out.println("Collecting and saving snapshots...");
 
-            List<OutputSnapshot> ptSnapshots = twin.getOutputSnapshotsInRange(TwinTarget.PHYSICAL, ptStart, ptEnd);
             List<OutputSnapshot> dtSnapshots = twin.getOutputSnapshotsInRange(TwinTarget.DIGITAL, dtStart, dtEnd);
+            List<OutputSnapshot> ptSnapshots = twin.getOutputSnapshotsInRange(TwinTarget.PHYSICAL, ptStart, ptEnd);
+            String dtFilename = context.twinId + "_" + context.executionId + "_dt.csv";
+            String ptFilename = context.twinId + "_" + context.executionId + "_pt.csv";
+            saveSnapshotsToCSV(dtSnapshots, dtFilename, dtStart);
+            saveSnapshotsToCSV(ptSnapshots, ptFilename, ptStart);
 
-            context.out.println("PHYSICAL TWIN:");
-            for (OutputSnapshot snapshot : ptSnapshots) {
-                context.out.println(snapshot);
-            }
-
-            context.out.println("\nDIGITAL TWIN:" + dtStart + "..." + dtEnd);
-            for (OutputSnapshot snapshot : dtSnapshots) {
-                context.out.println(snapshot);
-            }
-
+            context.out.println("Snapshots have been saved to " + dtFilename + " and " + ptFilename);
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -91,9 +71,34 @@ public class TestModule {
         testList = joiner.toString();
     }
 
-    private void wait(int millis, DTDataLake dl) throws InterruptedException {
-        dl.advanceDTTime(millis);
-        Thread.sleep(millis);
+    private static void movetoAndWait(DTDataLake dl, DLTwin twin, Position position) throws InterruptedException {
+        twin.putCommand(TwinTarget.BOTH, "moveto", position.toArguments());
+
+        // Wait until command is received
+        Thread.sleep(5000);
+
+        // Advance time in the DT to execute the command and its movement
+        dl.advanceDTTime(2000);
+
+        // Wait until we get the result
+        Thread.sleep(5000);
+    }
+
+    private static void saveSnapshotsToCSV(List<OutputSnapshot> snapshots, String filename, int startTime) {
+        try (PrintWriter file = new PrintWriter(new FileWriter(filename), true)) {
+            file.println("time,servo1,servo2,servo3,servo4,servo5,servo6");
+            for (OutputSnapshot snapshot : snapshots) {
+                Position position = snapshot.getCurrentAngles();
+                StringBuilder builder = new StringBuilder();
+                builder.append(snapshot.getTimestamp() - startTime);
+                for (int i = 0; i < 6; i++) {
+                    builder.append(",").append(position.get(i));
+                }
+                file.println(builder);
+            }
+        } catch (IOException ex) {
+            System.err.println("Could not write.");
+        }
     }
 
 }

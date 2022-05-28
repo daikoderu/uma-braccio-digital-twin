@@ -118,6 +118,17 @@ public class Position {
                 + wrist + ", " + wristRotation + ", " + gripper +")";
     }
 
+    public String[] toArguments() {
+        return new String[]{
+                getBase() + "",
+                getShoulder() + "",
+                getElbow() + "",
+                getWrist() + "",
+                getWristRotation() + "",
+                getGripper() + ""
+        };
+    }
+
     private static int clamp(int val, int min, int max) {
         return Math.max(min, Math.min(val, max));
     }

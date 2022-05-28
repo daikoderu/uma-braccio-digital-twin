@@ -25,11 +25,16 @@ def handle_output_snapshot(output: str, context: PTContext):
                 is_moving = True
         hash["moving"] = 1 if is_moving else 0
 
-        # Save to the Data Lake
+        # Save snapshot to the Data Lake
         key = f"PTOutputSnapshot:{context.twin_id}:{context.execution_id}:{context.timestamp}"
         context.datalake.hset(key, mapping=hash)
         context.datalake.zadd("PTOutputSnapshot_PROCESSED", {key: timestamp})
         print(f"Saved output object: {key}")
+
+        # Save a reference to this hash in the twin's "history"
+        history_key = f"PTOutputSnapshot:{context.twin_id}:{context.execution_id}_HISTORY"
+        context.datalake.zadd(history_key, {key: timestamp})
+
     except Exception as ex:
         print(f"Error saving output snapshot: {ex}")
 
@@ -51,7 +56,7 @@ def handle_command_result(output: str, context: PTContext):
                 "return": output
             }
 
-            # Save to the Data Lake
+            # Save command to the Data Lake
             key = f"PTCommandResult:{context.twin_id}:{context.execution_id}:{command.id}"
             context.datalake.hset(key, mapping=hash)
             context.datalake.zadd("PTCommandResult_PROCESSED", {key: command.id})

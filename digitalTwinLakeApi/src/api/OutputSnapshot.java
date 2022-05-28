@@ -37,8 +37,8 @@ public class OutputSnapshot {
                 int targetAngle = Integer.parseInt(hash.get("targetAngles_" + (i + 1)));
                 float currentSpeed = Float.parseFloat(hash.get("currentSpeeds_" + (i + 1)));
                 result.currentAngles.set(i, Math.round(currentAngle));
-                result.currentAngles.set(i, targetAngle);
-                result.currentAngles.set(i, Math.round(currentSpeed));
+                result.targetAngles.set(i, targetAngle);
+                result.currentSpeeds.set(i, Math.round(currentSpeed));
             }
             result.isMoving = !hash.get("moving").equals("0");
             return result;

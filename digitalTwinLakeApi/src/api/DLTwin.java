@@ -69,6 +69,26 @@ public class DLTwin {
         return commandId;
     }
 
+    public Command getCommand(TwinTarget target, int commandId) {
+        target.requireOneTwin();
+        String commandObjId = target.getPrefix() + "Command:"
+                + twinId + ":" + executionId + ":" + commandId;
+        String commandResultObjId = target.getPrefix() + "CommandResult:"
+                + twinId + ":" + executionId + ":" + commandId;
+        Map<String, String> commandHash = jedis.hgetAll(commandObjId);
+        Map<String, String> resultHash = null;
+        if (jedis.exists(commandResultObjId)) {
+            resultHash = jedis.hgetAll(commandResultObjId);
+        }
+        return Command.fromHashes(commandHash, resultHash);
+    }
+
+    public boolean commandHasResult(TwinTarget target, int commandId) {
+        String id = target.getPrefix() + "CommandResult:"
+                + twinId + ":" + executionId + ":" + commandId;
+        return jedis.exists(id);
+    }
+
     private void incrCommandCounter() {
         jedis.incr("commandCounter");
     }
@@ -99,7 +119,7 @@ public class DLTwin {
     public List<OutputSnapshot> getOutputSnapshotsInRange(TwinTarget target, int timestampFrom, int timestampTo) {
         target.requireOneTwin();
         String setId = target.getPrefix() + "OutputSnapshot:" + twinId + ":" + executionId + "_HISTORY";
-        Set<String> keys = jedis.zrangeByScore(setId, timestampFrom, timestampTo);
+        Set<String> keys = jedis.zrangeByScore(setId, timestampFrom, timestampTo + 1);
         return deserialize(keys);
     }
 
