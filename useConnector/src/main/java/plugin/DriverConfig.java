@@ -3,7 +3,7 @@ package plugin;
 public class DriverConfig {
 
     // Milliseconds to wait between checks for commands and snapshots.
-    public static final long SLEEP_TIME_MS = 5000;
+    public static final long SLEEP_TIME_MS = 2000;
 
     // Milliseconds to wait between tick checks.
     public static final int TICK_PERIOD_MS = 100;

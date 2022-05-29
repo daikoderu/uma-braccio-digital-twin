@@ -88,14 +88,9 @@ public class TestModule {
         DLTwin twin = dl.forTwin(ctx.getTwinId());
         int commandId = twin.putCommand(TwinTarget.BOTH, "moveto", position.toArguments());
 
-        // Wait until command is received
-        Thread.sleep(5000);
-
-        // Advance time in the DT to execute the command and its movement
-        dl.advanceDTTime(2000);
-
-        // Wait until we get the result
-        Thread.sleep(5000);
+        // Wait until command is received and result is returned by both twins
+        Thread.sleep(4000);
+        dl.advanceDTTime(5400);
 
         Command command = twin.getCommand(TwinTarget.DIGITAL, commandId);
         ctx.print("DT" + command);
