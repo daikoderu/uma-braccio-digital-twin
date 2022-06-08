@@ -2,7 +2,7 @@
     File: BraccioPT.cpp
 
     Copyright 2022 Daniel Pérez Porras, daniperezporras@gmail.com
-    Some parts from Stefan Strömberg (https://github.com/stefangs/arduino-library-braccio-robot)
+    Some parts from Stefan Strömberg's API (https://github.com/stefangs/arduino-library-braccio-robot)
 
     Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
     in compliance with the License. You may obtain a copy of the License at

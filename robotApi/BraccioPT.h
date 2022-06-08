@@ -1,5 +1,5 @@
 /*
-    File: BraccioPT.cpp
+    File: BraccioPT.h
 
     Copyright 2022 Daniel Pérez Porras, daniperezporras@gmail.com
     Some parts from Stefan Strömberg's API (https://github.com/stefangs/arduino-library-braccio-robot)
