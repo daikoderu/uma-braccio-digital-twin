@@ -87,5 +87,5 @@ char* handleFreeze(_SerialInput *input, _BraccioPT *robot, unsigned long ms)
 CommandType commandList[] = {
     {"moveto", handleMovetoImmediate, handleMoveto},
     {"freeze", handleFreezeImmediate, handleFreeze},
-    {NULL, NULL}
+    {NULL, NULL, NULL}
 };
