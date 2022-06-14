@@ -1,6 +1,6 @@
 # Braccio Digital Twin
  
-A digital twin system of a [TinkerKit Braccio robotic arm](https://www.arduino.cc/en/Guide/Braccio) developed using [Atenea Research Group's Digital Twin Framework](https://github.com/atenearesearchgroup/digitalTwinModelingFramework/tree/traces-management).
+A digital twin system of a [TinkerKit Braccio robotic arm](https://www.arduino.cc/en/Guide/Braccio) developed using [Atenea Research Group's Digital Twin Framework](https://github.com/atenearesearchgroup/digitalTwinModelingFramework).
 
 ## Overview
 
@@ -12,9 +12,14 @@ The structure of this repository is the following:
 A custom library for the robot, inspired by the [BraccioRobot library](https://github.com/stefangs/arduino-library-braccio-robot).
 
 
+### physicalTwinDriver
+
+A driver to connect and synchronize the robot's state (physical twin) with a data lake.
+
+
 ### useModel
 
-The USE model that represents the robot.
+A USE model that contains a replica of the robot (digital twin).
 
 
 ### useConnector
