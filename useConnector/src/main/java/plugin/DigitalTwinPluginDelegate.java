@@ -156,6 +156,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
         try (Jedis jedis = jedisPool.getResource()) {
             setExecutionIds(jedis);
             jedis.set(TimePubService.DT_NOW, "0");
+            useApi.setTime(0);
             jedis.set(DL_COMMAND_COUNTER, "0");
         } catch (Exception ex) {
             DTLogger.error("Error initializing USE model:", ex);
@@ -164,8 +165,8 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
 
     private void setExecutionIds(Jedis jedis) {
         String posixTime = System.currentTimeMillis() + "";
-        for (MObjectState clock : useApi.getObjectsOfClass("BraccioRobot")) {
-            useApi.setAttribute(clock, "executionId", posixTime);
+        for (MObjectState robot : useApi.getObjectsOfClass("BraccioRobot")) {
+            useApi.setAttribute(robot, "executionId", posixTime);
         }
         jedis.set(DL_EXECUTION_ID, posixTime);
     }

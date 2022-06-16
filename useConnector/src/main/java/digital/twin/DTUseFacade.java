@@ -36,6 +36,13 @@ public class DTUseFacade extends UseFacade {
         return getIntegerAttribute(clock, "now");
     }
 
+    public void setTime(int value) {
+        if (clock == null) {
+            clock = Objects.requireNonNull(getAnyObjectOfClass("Clock"));
+        }
+        setAttribute(clock, "now", value);
+    }
+
     public void advanceTime(int ticks) {
         if (clock == null) {
             clock = Objects.requireNonNull(getAnyObjectOfClass("Clock"));
