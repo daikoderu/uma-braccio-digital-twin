@@ -38,6 +38,7 @@ public class DTLogger {
     /**
      * Prints an error message to the standard error output.
      * @param msg The message to print.
+     * @param exception An exception to display.
      */
     public static void error(String msg, Exception exception) {
         log(System.err, "DT-ERR", msg, exception);
@@ -62,12 +63,22 @@ public class DTLogger {
     }
 
     /**
-     * Prints a message to the standard output.
-     * @param service A PubService whose channel name to use as a tag to be prepended to the message.
+     * Prints an warning message to the standard error output.
+     * @param tag A tag to prepend to the message.
      * @param msg The message to print.
      */
-    public static void info(PubService service, String msg) {
-        log(System.out, service.getChannel(), msg);
+    public static void error(String tag, String msg) {
+        log(System.err, "DT-ERR:" + tag, msg);
+    }
+
+    /**
+     * Prints an error message to the standard error output.
+     * @param tag A tag to prepend to the message.
+     * @param msg The message to print.
+     * @param exception An exception to display.
+     */
+    public static void error(String tag, String msg, Exception exception) {
+        log(System.err, "DT-ERR:" + tag, msg, exception);
     }
 
     private static void log(PrintStream stream, String tag, String msg) {

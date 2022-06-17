@@ -111,7 +111,7 @@ public abstract class InputManager {
             DTLogger.info(getChannel(), "Saved input object: " + key);
             useApi.updateDerivedValues();
         } catch (Exception ex) {
-            DTLogger.error("Could not create object: " + ex.getMessage());
+            DTLogger.error(getChannel(), "Could not create object: " + ex.getMessage());
         }
 
         // Move object from the "UNPROCESSED" queue to the "PROCESSED" queue.

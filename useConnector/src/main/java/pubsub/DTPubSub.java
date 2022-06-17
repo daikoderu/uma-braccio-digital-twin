@@ -6,6 +6,7 @@ import digital.twin.DTUseFacade;
 import digital.twin.OutputSnapshotsManager;
 import plugin.DriverConfig;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
 import utils.DTLogger;
 
@@ -20,7 +21,7 @@ public class DTPubSub extends JedisPubSub {
     public static final String COMMAND_IN_CHANNEL = "CommandInChannel";
     public static final String TIME_CHANNEL = "TimeChannel";
 
-    private final Jedis jedis;
+    private final JedisPool jedisPool;
     private final OutputSnapshotsManager dtOutSnapshotsManager;
     private final CommandManager commandManager;
     private final CommandResultManager commandResultManager;
@@ -29,10 +30,10 @@ public class DTPubSub extends JedisPubSub {
     /**
      * Default constructor.
      * @param useApi USE API facade instance to interact with the currently displayed object diagram
-     * @param jedis An instance of the Jedis client to access the data lake.
+     * @param jedisPool A Jedis connection pool to access the data lake.
      */
-    public DTPubSub(DTUseFacade useApi, Jedis jedis) {
-        this.jedis = jedis;
+    public DTPubSub(DTUseFacade useApi, JedisPool jedisPool) {
+        this.jedisPool = jedisPool;
         dtOutSnapshotsManager = new OutputSnapshotsManager(useApi);
         commandManager = new CommandManager(useApi);
         commandResultManager = new CommandResultManager(useApi);
@@ -46,7 +47,7 @@ public class DTPubSub extends JedisPubSub {
      */
     @Override
     public void onMessage(String channel, String message) {
-        try {
+        try (Jedis jedis = jedisPool.getResource()) {
             switch (channel) {
 
                 case DT_OUT_CHANNEL: // Info leaving USE

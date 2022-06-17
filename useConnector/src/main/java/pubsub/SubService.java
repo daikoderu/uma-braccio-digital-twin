@@ -1,6 +1,5 @@
 package pubsub;
 
-import digital.twin.DTUseFacade;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import utils.DTLogger;
@@ -11,19 +10,19 @@ import utils.DTLogger;
  */
 public class SubService implements Runnable {
 	
-	private final DTUseFacade useApi;
+	private final DTPubSub pubsub;
 	private final JedisPool jedisPool;
 	private final String subscribedChannel;
 	
 	/**
 	 * Default constructor
 	 * 
-	 * @param useApi USE API facade instance to interact with the currently displayed object diagram.
+	 * @param pubsub The listener to be used to handle events
 	 * @param jedisPool	Jedis client pool, connected to the Data Lake
 	 * @param subscribedChannel	Channel to subscribe to
 	 */
-	public SubService(DTUseFacade useApi, JedisPool jedisPool, String subscribedChannel) {
-		this.useApi = useApi;
+	public SubService(DTPubSub pubsub, JedisPool jedisPool, String subscribedChannel) {
+		this.pubsub = pubsub;
 		this.jedisPool = jedisPool;
 		this.subscribedChannel = subscribedChannel;
 	}
@@ -32,11 +31,12 @@ public class SubService implements Runnable {
 	 * Subscribes to the publisher channel specified in the constructor.
 	 */
 	public void run() {
-		DTLogger.info("Subscribing to " + subscribedChannel);
-        try (Jedis jedisSubscriber = jedisPool.getResource(); Jedis jedisCrud = jedisPool.getResource()) {
-        	jedisSubscriber.subscribe(new DTPubSub(useApi, jedisCrud), subscribedChannel);
+		DTLogger.info(subscribedChannel, "Subscribing to channel");
+        try (Jedis jedisSubscriber = jedisPool.getResource()) {
+        	jedisSubscriber.subscribe(pubsub, subscribedChannel);
+        	DTLogger.info(subscribedChannel, "Subscription ended");
         } catch (Exception ex) {
-        	DTLogger.error("An error ocurred:", ex);
+        	DTLogger.error(subscribedChannel, "An error ocurred:", ex);
         }    
     }
 

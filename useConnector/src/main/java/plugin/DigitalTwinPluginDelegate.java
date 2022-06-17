@@ -30,6 +30,14 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     private OutPubService commandOutPublisher;
     private InPubService commandInPublisher;
     private TimePubService timePublisher;
+    private Thread outChannelSubscriberThread;
+    private Thread commandOutChannelSubscriberThread;
+    private Thread commandInChannelSubscriberThread;
+    private Thread timeChannelSubscriberThread;
+    private DTPubSub outPubSub;
+    private DTPubSub commandOutPubSub;
+    private DTPubSub commandInPubSub;
+    private DTPubSub timePubSub;
     private DTUseFacade useApi;
 
     /**
@@ -81,23 +89,28 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
             executor.submit(commandInPublisher);
             executor.submit(timePublisher);
 
+            outPubSub = new DTPubSub(useApi, jedisPool);
+            commandOutPubSub = new DTPubSub(useApi, jedisPool);
+            commandInPubSub = new DTPubSub(useApi, jedisPool);
+            timePubSub = new DTPubSub(useApi, jedisPool);
+
             // Create subscribing threads
-            Thread outChannelThread = new Thread(
-                    new SubService(useApi, jedisPool, DTPubSub.DT_OUT_CHANNEL),
+            outChannelSubscriberThread = new Thread(
+                    new SubService(outPubSub, jedisPool, DTPubSub.DT_OUT_CHANNEL),
                     DTPubSub.DT_OUT_CHANNEL + " subscriber thread");
-            Thread commandOutChannelThread = new Thread(
-                    new SubService(useApi, jedisPool, DTPubSub.COMMAND_OUT_CHANNEL),
+            commandOutChannelSubscriberThread = new Thread(
+                    new SubService(commandOutPubSub, jedisPool, DTPubSub.COMMAND_OUT_CHANNEL),
                     DTPubSub.COMMAND_OUT_CHANNEL + " subscriber thread");
-            Thread commandInChannelThread = new Thread(
-                    new SubService(useApi, jedisPool, DTPubSub.COMMAND_IN_CHANNEL),
+            commandInChannelSubscriberThread = new Thread(
+                    new SubService(commandInPubSub, jedisPool, DTPubSub.COMMAND_IN_CHANNEL),
                     DTPubSub.COMMAND_IN_CHANNEL + " subscriber thread");
-            Thread timeChannelThread = new Thread(
-                    new SubService(useApi, jedisPool, DTPubSub.TIME_CHANNEL),
+            timeChannelSubscriberThread = new Thread(
+                    new SubService(timePubSub, jedisPool, DTPubSub.TIME_CHANNEL),
                     DTPubSub.TIME_CHANNEL + " subscriber thread");
-            outChannelThread.start();
-            commandOutChannelThread.start();
-            commandInChannelThread.start();
-            timeChannelThread.start();
+            outChannelSubscriberThread.start();
+            commandOutChannelSubscriberThread.start();
+            commandInChannelSubscriberThread.start();
+            timeChannelSubscriberThread.start();
 
             connectionIsActive = true;
         }
@@ -107,12 +120,33 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
      * Stops the connection between USE and the data lake.
      */
     private void disconnect() {
-        outPublisher.stop();
-        commandOutPublisher.stop();
-        commandInPublisher.stop();
-        timePublisher.stop();
-        connectionIsActive = false;
-        DTLogger.info("Connection ended successfully");
+        try {
+            DTLogger.info("Disconnecting...");
+            outPublisher.stop();
+            commandOutPublisher.stop();
+            commandInPublisher.stop();
+            timePublisher.stop();
+            outPublisher.waitUntilFinished();
+            commandOutPublisher.waitUntilFinished();
+            commandInPublisher.waitUntilFinished();
+            timePublisher.waitUntilFinished();
+
+            DTLogger.info("Unsubscribing SubServices...");
+            outPubSub.unsubscribe(DTPubSub.DT_OUT_CHANNEL);
+            commandOutPubSub.unsubscribe(DTPubSub.COMMAND_OUT_CHANNEL);
+            commandInPubSub.unsubscribe(DTPubSub.COMMAND_IN_CHANNEL);
+            timePubSub.unsubscribe(DTPubSub.TIME_CHANNEL);
+
+            outChannelSubscriberThread.join();
+            commandOutChannelSubscriberThread.join();
+            commandInChannelSubscriberThread.join();
+            timeChannelSubscriberThread.join();
+            executor.shutdown();
+            connectionIsActive = false;
+            DTLogger.info("Connection ended successfully");
+        } catch (InterruptedException ex) {
+            DTLogger.error("Could not end connection successfully", ex);
+        }
     }
 
     /**

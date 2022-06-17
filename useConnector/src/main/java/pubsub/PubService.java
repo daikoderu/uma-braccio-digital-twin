@@ -11,11 +11,13 @@ public abstract class PubService implements Runnable {
 	private final String channel;
 	private final long sleepTime;
 	private boolean running;
+	private boolean finished;
 	
 	public PubService(String channel, long sleepTime) {
 		this.channel = channel;
 		this.sleepTime = sleepTime;
 		running = true;
+		finished = false;
 	}
 
 	public String getChannel() {
@@ -27,10 +29,18 @@ public abstract class PubService implements Runnable {
 			busyWait(sleepTime);
 			action();
 		}
+		finished = true;
+		DTLogger.info(channel, "PubService stopped");
 	}
 
 	public void stop() {
 		running = false;
+	}
+
+	public void waitUntilFinished() {
+		while (!finished) {
+			busyWait(50);
+		}
 	}
 
 	protected abstract void action();
@@ -39,7 +49,7 @@ public abstract class PubService implements Runnable {
 		try {
 			Thread.sleep(millis);
 		} catch (InterruptedException ex) {
-			DTLogger.info(this, "Wait interrupted");
+			DTLogger.error(channel, "Wait interrupted", ex);
 		}
 	}
 

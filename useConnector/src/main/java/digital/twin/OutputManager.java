@@ -137,7 +137,7 @@ public abstract class OutputManager {
         try {
             cleanUpModel(objstate);
         } catch (Exception ex) {
-            DTLogger.error("Could not clean up model:");
+            DTLogger.error(getChannel(), "Could not clean up model:");
             ex.printStackTrace();
         }
     }

@@ -35,7 +35,7 @@ public class InPubService extends PubService {
         try (Jedis jedis = jedisPool.getResource()) {
             if (!input.getUnprocessedDLObjects(jedis).isEmpty()) {
                 jedis.publish(getChannel(), "New Information");
-                DTLogger.info(this, "New Information");
+                DTLogger.info(getChannel(), "New Information");
             }
         } catch (Exception ex) {
             DTLogger.error("An error ocurred:", ex);
