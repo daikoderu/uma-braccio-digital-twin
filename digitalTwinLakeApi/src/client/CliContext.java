@@ -55,8 +55,8 @@ public class CliContext {
     public void setupConnectionWithDataLake(String host, int port) {
         dtdlConnection = new DTDLConnection(host, port);
     }
-    public DTDataLake getDataLakeResource() {
-        return dtdlConnection.getResource();
+    public DTDataLake getDataLake() {
+        return dtdlConnection.getDataLake();
     }
 
     public void createClockController() {

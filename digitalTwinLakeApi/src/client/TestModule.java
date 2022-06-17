@@ -2,7 +2,6 @@ package client;
 
 import api.*;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
@@ -29,7 +28,7 @@ public class TestModule {
     }
 
     private static void simpleMoves(CliContext ctx) {
-        try (DTDataLake dl = ctx.getDataLakeResource()) {
+        try (DTDataLake dl = ctx.getDataLake()) {
             int dtStart = dl.getDTTime();
             int ptStart = dl.getPTTime();
             DLTwin twin = dl.forTwin(ctx.getTwinId());

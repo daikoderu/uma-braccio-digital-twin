@@ -47,7 +47,7 @@ public class CliSession {
         }
 
         // Obtain executionId
-        try (DTDataLake dl = ctx.getDataLakeResource()) {
+        try (DTDataLake dl = ctx.getDataLake()) {
             ctx.setExecutionId(dl.getCurrentExecutionId());
             if (ctx.getExecutionId() == null) {
                 ctx.error("Error: executionId not found. " +
@@ -75,7 +75,7 @@ public class CliSession {
             if (commandTypes.containsKey(tokens[0])) {
                 commandTypes.get(tokens[0]).accept(args, ctx);
             } else {
-                try (DTDataLake dl = ctx.getDataLakeResource()) {
+                try (DTDataLake dl = ctx.getDataLake()) {
                     int commandId = dl.forTwin(ctx.getTwinId()).putCommand(TwinTarget.BOTH, tokens[0], args);
                     ctx.print("Command sent to both twins with ID = " + commandId);
                 } catch (Exception ex) {
@@ -97,7 +97,7 @@ public class CliSession {
     }
 
     private boolean checkConnectionWithDatabase() {
-        try (DTDataLake dl = ctx.getDataLakeResource()) {
+        try (DTDataLake dl = ctx.getDataLake()) {
             return dl.ping();
         } catch (Exception ex) {
             ctx.error("Data lake connection error:");

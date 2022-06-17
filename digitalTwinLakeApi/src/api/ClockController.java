@@ -20,10 +20,11 @@ public class ClockController implements Runnable {
 
     public void run() {
         running = true;
+        DTDataLake dl = connection.getDataLake();
         while (running) {
             busyWait();
             if (ticking) {
-                try (DTDataLake dl = connection.getResource()) {
+                try {
                     dl.advanceDTTime(TICK_RESOLUTION_MS);
                 } catch (Exception ex) {
                     ex.printStackTrace();

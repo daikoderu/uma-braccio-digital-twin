@@ -16,7 +16,7 @@ public class DTDLConnection implements Closeable {
         pool = new JedisPool(host, port);
     }
 
-    public DTDataLake getResource() {
+    public DTDataLake getDataLake() {
         return new DTDataLake(pool);
     }
 

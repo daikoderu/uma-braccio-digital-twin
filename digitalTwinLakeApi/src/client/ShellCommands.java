@@ -29,7 +29,7 @@ public abstract class ShellCommands {
                     ctx.error(usage);
                     ctx.error("Missing argument <amount>.");
                 } else {
-                    try (DTDataLake dl = ctx.getDataLakeResource()) {
+                    try (DTDataLake dl = ctx.getDataLake()) {
                         int amount = Integer.parseInt(args[1]);
                         if (amount < 0) {
                             ctx.error(usage);
