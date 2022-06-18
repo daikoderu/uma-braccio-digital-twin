@@ -61,14 +61,17 @@ public class CliContext {
 
     public void createClockController() {
         Objects.requireNonNull(dtdlConnection);
-        clockController = new ClockController(dtdlConnection);
-        clockControllerThread = new Thread(clockController);
-        clockControllerThread.start();
+        if (clockController == null) {
+            clockController = new ClockController(dtdlConnection);
+            clockControllerThread = new Thread(clockController);
+            clockControllerThread.start();
+        }
     }
     public void stopClockController() {
         clockController.stop();
         try {
             clockControllerThread.join();
+            clockController = null;
         } catch (InterruptedException ignored) { }
     }
     public void setClockControllerTicking(boolean ticking) {
