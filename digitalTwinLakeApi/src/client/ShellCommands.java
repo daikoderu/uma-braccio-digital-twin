@@ -54,7 +54,7 @@ public abstract class ShellCommands {
             ctx.error("Usage: test <testname>");
             return;
         }
-        TestModule.run(args[0], ctx);
+        AutomatedTests.run(args[0], ctx);
     }
 
 }

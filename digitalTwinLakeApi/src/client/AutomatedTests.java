@@ -10,17 +10,17 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.function.Consumer;
 
-public class TestModule {
+public class AutomatedTests {
 
-    private static Map<String, Consumer<CliContext>> testModules = null;
+    private static Map<String, Consumer<CliContext>> tests = null;
     private static String testList;
 
     public static void run(String testName, CliContext context) {
-        if (testModules == null) {
+        if (tests == null) {
             loadTests();
         }
-        if (testModules.containsKey(testName)) {
-            testModules.get(testName).accept(context);
+        if (tests.containsKey(testName)) {
+            tests.get(testName).accept(context);
         } else {
             context.error("Test not found: " + testName);
             context.error("Available tests: " + testList);
@@ -72,11 +72,11 @@ public class TestModule {
     }
 
     private static void loadTests() {
-        testModules = new HashMap<>();
-        testModules.put("simpleMoves", TestModule::simpleMoves);
+        tests = new HashMap<>();
+        tests.put("simpleMoves", AutomatedTests::simpleMoves);
 
         StringJoiner joiner = new StringJoiner(", ", "", "");
-        for (String testName : testModules.keySet()) {
+        for (String testName : tests.keySet()) {
             joiner.add(testName);
         }
         testList = joiner.toString();
