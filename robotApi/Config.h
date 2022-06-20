@@ -20,6 +20,9 @@
 // Delay between robot movement steps
 #define STEP_DELAY_MS 10
 
+// Serial port timeout
+#define SERIAL_PORT_TIMEOUT 5
+
 // Time to wait between snapshots
 #define SNAPSHOT_PERIOD_MS 100
 

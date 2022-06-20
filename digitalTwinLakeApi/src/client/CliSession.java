@@ -6,6 +6,7 @@ import org.javatuples.Pair;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.function.BiConsumer;
 
 public class CliSession {
@@ -88,12 +89,18 @@ public class CliSession {
     }
 
     private String[] prompt() {
-        String[] tokens;
-        String prompt = ctx.getTwinId() + ":" + ctx.getExecutionId() + "> ";
-        do {
-            tokens = ctx.input(prompt).split(" +");
-        } while (tokens.length == 0 || tokens[0].isEmpty());
-        return tokens;
+        try {
+            String[] tokens;
+            String prompt = ctx.getTwinId() + ":" + ctx.getExecutionId() + "> ";
+            do {
+                tokens = ctx.input(prompt).split(" +");
+            } while (tokens.length == 0 || tokens[0].isEmpty());
+            return tokens;
+        } catch (NoSuchElementException ex) {
+            ctx.setQuitting(true);
+            ctx.print("Quitting...");
+            return new String[]{"quit"};
+        }
     }
 
     private boolean checkConnectionWithDatabase() {

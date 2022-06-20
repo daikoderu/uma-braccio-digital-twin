@@ -61,7 +61,7 @@ void _BraccioPT::init(Position& startPosition, bool doSoftStart, unsigned long b
 
     // Initialize serial port
     Serial.begin(baudRate);
-    Serial.setTimeout(STEP_DELAY_MS);
+    Serial.setTimeout(SERIAL_PORT_TIMEOUT);
 
 }
 
