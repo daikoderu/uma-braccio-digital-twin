@@ -21,9 +21,9 @@
     <orderEntry type="library" exported="" name="slf4j-api-1.7.25" level="project" />
     <orderEntry type="library" exported="" name="slf4j-simple-1.7.25" level="project" />
     <orderEntry type="library" exported="" name="commons-pool2-2.9.0" level="project" />
-    <orderEntry type="library" exported="" name="jedis-3.6.0" level="project" />
     <orderEntry type="library" exported="" name="use-runtime" level="project" />
     <orderEntry type="library" exported="" name="use" level="project" />
     <orderEntry type="library" name="javatuples-1.2" level="project" />
+    <orderEntry type="library" name="neo4j-java-driver-4.4.6" level="project" />
   </component>
 </module>

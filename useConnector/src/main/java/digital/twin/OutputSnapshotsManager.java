@@ -2,8 +2,7 @@ package digital.twin;
 
 import org.tzi.use.api.UseApiException;
 import org.tzi.use.uml.sys.MObjectState;
-import pubsub.DTPubSub;
-import redis.clients.jedis.Jedis;
+import services.Service;
 
 import java.util.Map;
 
@@ -20,7 +19,7 @@ public class OutputSnapshotsManager extends OutputManager {
      * @param useApi USE API facade instance to interact with the currently displayed object diagram.
      */
     public OutputSnapshotsManager(DTUseFacade useApi) {
-        super(useApi, DTPubSub.DT_OUT_CHANNEL, "OutputBraccioSnapshot", "DTOutputSnapshot");
+        super(useApi, Service.DT_OUT_CHANNEL, "OutputBraccioSnapshot", "DTOutputSnapshot");
         attributeSpecification.set("twinId", AttributeType.STRING);
         attributeSpecification.set("executionId", AttributeType.STRING);
         attributeSpecification.set("currentAngles", AttributeType.REAL, NUMBER_OF_SERVOS);
@@ -44,15 +43,12 @@ public class OutputSnapshotsManager extends OutputManager {
     }
 
     protected void addObjectQueryRegisters(
-            Jedis jedis, String objectTypeAndId, Map<String, String> values) {
-        // Make a snapshot history for each twin and execution ID
-        String idWithNoTimestamp = objectTypeAndId.substring(0, objectTypeAndId.lastIndexOf(':'));
-        int timestamp = Integer.parseInt(values.get("timestamp"));
-        jedis.zadd(idWithNoTimestamp + "_HISTORY", timestamp, objectTypeAndId);
+            String objectTypeAndId, Map<String, String> values) {
+        // TODO Make a snapshot history for each twin and execution ID
     }
 
     protected void addAttributeQueryRegisters(
-            Jedis jedis, String objectTypeAndId, String attributeName,
+            String objectTypeAndId, String attributeName,
             AttributeType type, String attributeValue) { }
 
     protected void cleanUpModel(MObjectState objstate) throws UseApiException {

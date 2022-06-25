@@ -1,7 +1,6 @@
 package digital.twin;
 
 import org.tzi.use.uml.sys.MObjectState;
-import redis.clients.jedis.Jedis;
 import utils.DTLogger;
 
 import java.util.ArrayList;
@@ -50,18 +49,18 @@ public abstract class InputManager {
      * Retrieves the objects of type <i>objectType</i> from the Data Lake
      * @return The list of objects available in the Data Lake.
      */
-    public Set<String> getUnprocessedDLObjects(Jedis jedis) {
-        return jedis.zrange(objectType + "_UNPROCESSED", 0, -1);
+    public Set<String> getUnprocessedDLObjects() {
+        // TODO
+        return null;
     }
 
     /**
      * Saves all the objects in the Data Lake to the USE model.
-     * @param jedis An instance of the Jedis client to access the data lake.
      */
-    public void saveObjectsToUseModel(Jedis jedis) {
-        Set<String> unprocessedCommands = getUnprocessedDLObjects(jedis);
+    public void saveObjectsToUseModel() {
+        Set<String> unprocessedCommands = getUnprocessedDLObjects();
         for (String key : unprocessedCommands) {
-            saveOneObject(jedis, key);
+            saveOneObject(key);
         }
     }
 
@@ -74,11 +73,10 @@ public abstract class InputManager {
 
     /**
      * Auxiliary method to store the object in the USE model, extracted from the Data Lake.
-     * @param jedis An instance of the Jedis client to access the data lake.
      * @param key The key of the object to store.
      */
-    private synchronized void saveOneObject(Jedis jedis, String key) {
-        Map<String, String> hash = jedis.hgetAll(key);
+    private synchronized void saveOneObject(String key) {
+        Map<String, String> hash = null; // jedis.hgetAll(key);
         try {
             MObjectState objstate = useApi.createObject(
                     getTargetClass(hash), objectType + ++instanceCounter);
@@ -114,14 +112,9 @@ public abstract class InputManager {
             DTLogger.error(getChannel(), "Could not create object: " + ex.getMessage());
         }
 
-        // Move object from the "UNPROCESSED" queue to the "PROCESSED" queue.
-        double score = jedis.zscore(objectType + "_UNPROCESSED", key);
-        jedis.zrem(objectType + "_UNPROCESSED", key);
-        jedis.zadd(objectType + "_PROCESSED", score, key);
+        // TODO Move object from the "UNPROCESSED" queue to the "PROCESSED" queue.
 
-
-        // Set whenProcessed to indicate when this instance has been saved to the USE model.
-        jedis.hset(key, WHEN_PROCESSED, useApi.getCurrentTime() + "");
+        // TODO Set whenProcessed to indicate when this instance has been saved to the USE model.
     }
 
     private int getNumberOfValues(Map<String, String> hash, String attribute) {

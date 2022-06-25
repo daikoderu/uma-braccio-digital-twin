@@ -1,8 +1,7 @@
 package digital.twin;
 
 import org.tzi.use.uml.sys.MObjectState;
-import pubsub.DTPubSub;
-import redis.clients.jedis.Jedis;
+import services.Service;
 
 import java.util.Map;
 
@@ -13,7 +12,7 @@ import java.util.Map;
 public class CommandResultManager extends OutputManager {
 
     public CommandResultManager(DTUseFacade useApi) {
-        super(useApi, DTPubSub.COMMAND_OUT_CHANNEL, "CommandResult", "DTCommandResult");
+        super(useApi, Service.COMMAND_OUT_CHANNEL, "CommandResult", "DTCommandResult");
         attributeSpecification.set("twinId", AttributeType.STRING);
         attributeSpecification.set("executionId", AttributeType.STRING);
         attributeSpecification.set("commandId", AttributeType.INTEGER);
@@ -36,10 +35,10 @@ public class CommandResultManager extends OutputManager {
     }
 
     protected void addObjectQueryRegisters(
-            Jedis jedis, String objectTypeAndId, Map<String, String> values) { }
+            String objectTypeAndId, Map<String, String> values) { }
 
     protected void addAttributeQueryRegisters(
-            Jedis jedis, String objectTypeAndId, String attributeName,
+            String objectTypeAndId, String attributeName,
             AttributeType type, String attributeValue) { }
 
     protected void cleanUpModel(MObjectState objstate) { }

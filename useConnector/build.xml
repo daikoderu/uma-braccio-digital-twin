@@ -49,7 +49,7 @@
 		<jar destfile="dist/${filename}" basedir="build" manifest="META-INF/MANIFEST.MF">
 			<fileset dir="." includes="useplugin.xml" />
 			<zipfileset src="lib/commons-pool2-2.9.0.jar" />
-			<zipfileset src="lib/jedis-3.6.0.jar" />
+			<zipfileset src="lib/neo4j-java-driver-4.4.6.jar" />
 			<zipfileset src="lib/slf4j-api-1.7.25.jar" />
 			<zipfileset src="lib/slf4j-simple-1.7.25.jar" />
 			<zipfileset src="lib/javatuples-1.2.jar" />

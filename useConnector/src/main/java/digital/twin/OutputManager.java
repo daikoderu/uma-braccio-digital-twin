@@ -2,7 +2,6 @@ package digital.twin;
 
 import org.tzi.use.api.UseApiException;
 import org.tzi.use.uml.sys.MObjectState;
-import redis.clients.jedis.Jedis;
 import utils.DTLogger;
 
 import java.util.HashMap;
@@ -63,22 +62,20 @@ public abstract class OutputManager {
 
     /**
      * Saves all the objects in the currently displayed object diagram to the data lake.
-     * @param jedis An instance of the Jedis client to access the data lake.
      */
-    public void saveObjectsToDataLake(Jedis jedis) {
+    public void saveObjectsToDataLake() {
         useApi.updateDerivedValues();
         List<MObjectState> unprocessedObjects = getUnprocessedModelObjects();
         for (MObjectState objstate : unprocessedObjects) {
-            saveOneObject(jedis, objstate);
+            saveOneObject(objstate);
         }
     }
 
     /**
      * Auxiliary method to store the object in the database, extracted from the diagram.
-     * @param jedis An instance of the Jedis client to access the data lake.
      * @param objstate The object to store.
      */
-    private synchronized void saveOneObject(Jedis jedis, MObjectState objstate) {
+    private synchronized void saveOneObject(MObjectState objstate) {
         Map<String, String> armValues = new HashMap<>();
 
         // Generate the object identifier
@@ -98,7 +95,7 @@ public abstract class OutputManager {
                             String attrI = attr + "_" + i;
                             String attrvalueI = attrType.fromUseToRedisString(values[i - 1]);
                             armValues.put(attrI,attrvalueI);
-                            addAttributeQueryRegisters(jedis, objectTypeAndId, attrI, attrType, attrvalueI);
+                            addAttributeQueryRegisters(objectTypeAndId, attrI, attrType, attrvalueI);
                         }
                     } else {
                         DTLogger.warn(getChannel(),
@@ -110,7 +107,7 @@ public abstract class OutputManager {
                     // A single value
                     attrValue = attrType.fromUseToRedisString(attrValue);
                     armValues.put(attr, attrValue);
-                    addAttributeQueryRegisters(jedis, objectTypeAndId, attr, attrType, attrValue);
+                    addAttributeQueryRegisters(objectTypeAndId, attr, attrType, attrValue);
                 }
             } else {
                 DTLogger.warn(getChannel(),
@@ -119,19 +116,12 @@ public abstract class OutputManager {
             }
         }
 
-        // Save the object
-        jedis.hset(objectTypeAndId, armValues);
-        DTLogger.info(getChannel(), "Saved output object: " + objectTypeAndId);
+        // TODO Save the object
 
-        // Mark object as processed
-        int time = useApi.getCurrentTime();
-        jedis.zadd(objectType + "_PROCESSED", getObjectScore(objstate), objectTypeAndId);
-        jedis.hset(objectTypeAndId, WHEN_PROCESSED, time + "");
-        useApi.setAttribute(objstate, IS_PROCESSED, true);
-        useApi.setAttribute(objstate, WHEN_PROCESSED, time);
+        // TODO Mark object as processed (IS_PROCESSED, WHEN_PROCESSED)
 
         // Add registers for other queries
-        addObjectQueryRegisters(jedis, objectTypeAndId, armValues);
+        addObjectQueryRegisters(objectTypeAndId, armValues);
 
         // Clean up
         try {
@@ -150,23 +140,21 @@ public abstract class OutputManager {
 
     /**
      * Adds registers to the data lake each time an object is processed to make queries possible.
-     * @param jedis An instance of the Jedis client to access the data lake.
      * @param objectTypeAndId The ID of the object to generate the registers for.
      * @param values The values of the object to generate the registers for.
      */
     protected abstract void addObjectQueryRegisters(
-            Jedis jedis, String objectTypeAndId, Map<String, String> values);
+            String objectTypeAndId, Map<String, String> values);
 
     /**
      * Adds registers to the data lake each time an attribute is processed to make queries possible.
-     * @param jedis An instance of the Jedis client to access the data lake.
      * @param objectTypeAndId The ID of the object to generate the registers for.
      * @param attributeName The name of the attribute to generate the registers for.
      * @param type The type of the attribute to generate the registers for.
      * @param attributeValue The value of the attribute to generate the registers for.
      */
     protected abstract void addAttributeQueryRegisters(
-            Jedis jedis, String objectTypeAndId, String attributeName,
+            String objectTypeAndId, String attributeName,
             AttributeType type, String attributeValue);
 
     /**
