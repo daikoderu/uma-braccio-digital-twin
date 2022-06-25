@@ -7,10 +7,10 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="jedis-3.6.0" level="project" />
     <orderEntry type="library" name="javatuples-1.2" level="project" />
     <orderEntry type="library" name="commons-pool2-2.9.0" level="project" />
     <orderEntry type="library" name="slf4j-api-1.7.25" level="project" />
     <orderEntry type="library" name="slf4j-simple-1.7.25" level="project" />
+    <orderEntry type="library" name="neo4j-java-driver-4.4.6" level="project" />
   </component>
 </module>

@@ -44,6 +44,7 @@ public class CliSession {
         // Connect to the database
         ctx.setupConnectionWithDataLake(hostport.getValue0(), hostport.getValue1());
         if (!checkConnectionWithDatabase()) {
+            ctx.error("Error: cannot connect to Data Lake.");
             return EXIT_FAILURE;
         }
 

@@ -1,6 +1,5 @@
 package api;
 
-import redis.clients.jedis.JedisPool;
 
 import java.io.Closeable;
 
@@ -10,18 +9,16 @@ import java.io.Closeable;
  */
 public class DTDLConnection implements Closeable {
 
-    private final JedisPool pool;
-
     public DTDLConnection(String host, int port) {
-        pool = new JedisPool(host, port);
+        // TODO
     }
 
     public DTDataLake getDataLake() {
-        return new DTDataLake(pool);
+        return new DTDataLake();
     }
 
     public void close() {
-        pool.close();
+        // TODO
     }
 
 }

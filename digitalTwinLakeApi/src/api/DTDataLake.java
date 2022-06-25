@@ -1,8 +1,5 @@
 package api;
 
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-
 import java.io.Closeable;
 
 /**
@@ -15,23 +12,22 @@ public class DTDataLake implements Closeable {
     private static final String DT_OUTPUT_SNAPSHOT = "DTOutputSnapshot";
     private static final String PT_OUTPUT_SNAPSHOT = "PTOutputSnapshot";
 
-    private final Jedis jedis;
-
-    DTDataLake(JedisPool pool) {
-        jedis = pool.getResource();
+    DTDataLake() {
+        // TODO
     }
 
     @Override
     public void close() {
-        jedis.close();
+        // TODO
     }
 
     /**
-     * Performs a Redis ping.
+     * Performs a ping.
      * @return True if the ping was answered with PONG.
      */
     public boolean ping() {
-        return jedis.ping().equalsIgnoreCase("PONG");
+        // TODO
+        return false;
     }
 
     /**
@@ -39,11 +35,8 @@ public class DTDataLake implements Closeable {
      * @return The value of the Physical Twin's clock.
      */
     public int getPTTime() {
-        if (jedis.exists("PTnow")) {
-            return Integer.parseInt(jedis.get("PTnow"));
-        } else {
-            return 0;
-        }
+        // TODO
+        return 0;
     }
 
     /**
@@ -51,11 +44,8 @@ public class DTDataLake implements Closeable {
      * @return The value of the Digital Twin's clock.
      */
     public int getDTTime() {
-        if (jedis.exists("DTnow")) {
-            return Integer.parseInt(jedis.get("DTnow"));
-        } else {
-            return 0;
-        }
+        // TODO
+        return 0;
     }
 
     /**
@@ -66,7 +56,7 @@ public class DTDataLake implements Closeable {
         if (amount < 0) {
             throw new IllegalArgumentException("amount must be non-negative");
         }
-        jedis.incrBy("DTnow", amount);
+        // TODO
     }
 
     /**
@@ -74,11 +64,8 @@ public class DTDataLake implements Closeable {
      * @return The ID of the current execution.
      */
     public String getCurrentExecutionId() {
-        if (jedis.exists("executionId")) {
-            return jedis.get("executionId");
-        } else {
-            return null;
-        }
+        // TODO
+        return null;
     }
 
     /**
@@ -86,11 +73,8 @@ public class DTDataLake implements Closeable {
      * @return The current value of the command counter.
      */
     public int getCommandCounter() {
-        if (jedis.exists("commandCounter")) {
-            return Integer.parseInt(jedis.get("commandCounter"));
-        } else {
-            return 0;
-        }
+        // TODO
+        return 0;
     }
 
     /**
@@ -100,7 +84,7 @@ public class DTDataLake implements Closeable {
      * @return A DLTwin object to perform queries on the specified twin.
      */
     public DLTwin forTwin(String twinId) {
-        return new DLTwin(jedis, this, twinId);
+        return new DLTwin(this, twinId);
     }
 
 }
