@@ -1,20 +1,23 @@
 package plugin;
 
 import digital.twin.*;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.GraphDatabase;
+import org.neo4j.driver.Session;
 import org.tzi.use.api.UseSystemApi;
 import org.tzi.use.runtime.gui.IPluginAction;
 import org.tzi.use.runtime.gui.IPluginActionDelegate;
+import org.tzi.use.uml.sys.MObjectState;
 import services.*;
 import utils.DTLogger;
+
+import static org.neo4j.driver.Values.parameters;
 
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
  * Plugin's main class.
  */
 public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
-
-    private static final String DL_EXECUTION_ID = "executionId";
-    private static final String DL_COMMAND_COUNTER = "commandCounter";
 
     private boolean connectionIsActive;
     private OutService outService;
@@ -26,6 +29,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     private Thread commandInServiceThread;
     private Thread timeServiceThread;
     private DTUseFacade useApi;
+    private Driver driver;
 
     /**
      * Default constructor
@@ -53,10 +57,11 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
      */
     private void connect(IPluginAction pluginAction) {
         setApi(pluginAction);
+        driver = GraphDatabase.driver("bolt://" + DriverConfig.NEO4J_HOSTNAME);
         if (checkConnectionWithDatabase()) {
 
             // Initialize USE model
-            initializeModel();
+            initialize();
 
             // Create threads
             outService = new OutService(Service.DT_OUT_CHANNEL, new OutputSnapshotsManager(useApi));
@@ -72,10 +77,10 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
                     Service.COMMAND_IN_CHANNEL + " subscriber thread");
             timeServiceThread = new Thread(timeService,
                     Service.TIME_CHANNEL + " subscriber thread");
-            outServiceThread.start();
-            commandOutServiceThread.start();
-            commandInServiceThread.start();
-            timeServiceThread.start();
+            //outServiceThread.start();
+            //commandOutServiceThread.start();
+            //commandInServiceThread.start();
+            //timeServiceThread.start();
 
             connectionIsActive = true;
         }
@@ -95,6 +100,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
             commandOutServiceThread.join();
             commandInServiceThread.join();
             timeServiceThread.join();
+            driver.close();
             connectionIsActive = false;
             DTLogger.info("Connection ended successfully");
         } catch (InterruptedException ex) {
@@ -128,14 +134,35 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
     }
 
     /**
-     * Initializes the USE model.
+     * Initializes the model and the data lake.
      */
-    private void initializeModel() {
-        // TODO
-    }
+    private void initialize() {
+        try (Session session = driver.session()) {
+            String posixTime = System.currentTimeMillis() + "";
+            session.writeTransaction(tx -> {
 
-    private void setExecutionIds() {
-        // TODO
+                // Create execution node
+                tx.run("MATCH (ex:Execution) DETACH DELETE (ex)");
+                tx.run("CREATE (ex:Execution) " +
+                    "SET ex.executionId = $executionId, ex.commandCounter = 0 " +
+                    "RETURN ex",
+                    parameters("executionId", posixTime)
+                );
+                for (MObjectState robot : useApi.getObjectsOfClass("BraccioRobot")) {
+                    useApi.setAttribute(robot, "executionId", posixTime);
+                    String twinId = useApi.getStringAttribute(robot, "twinId");
+
+                    // Create robot nodes
+                    tx.run("CREATE (r:BraccioRobot) " +
+                            "SET r.twinId = $twinId, r.executionId = $executionId, r.isPhysical = false " +
+                            "RETURN r",
+                            parameters("twinId", twinId, "executionId", posixTime));
+                }
+                return null;
+            });
+        } catch (Exception ex) {
+            DTLogger.error("Error initializing USE model:", ex);
+        }
     }
 
 }

@@ -24,6 +24,6 @@
     <orderEntry type="library" exported="" name="use-runtime" level="project" />
     <orderEntry type="library" exported="" name="use" level="project" />
     <orderEntry type="library" name="javatuples-1.2" level="project" />
-    <orderEntry type="library" name="neo4j-java-driver-4.4.6" level="project" />
+    <orderEntry type="library" name="org.neo4j.driver:neo4j-java-driver:4.4.6" level="project" />
   </component>
 </module>

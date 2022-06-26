@@ -9,6 +9,6 @@ public class DriverConfig {
     public static final int TICK_PERIOD_MS = 100;
 
     // Hostname of the Neo4j instance that contains the data lake.
-    public static final String NEO4J_HOSTNAME = "localhost";
+    public static final String NEO4J_HOSTNAME = "localhost:7687";
 
 }
