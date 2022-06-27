@@ -83,7 +83,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
             outServiceThread.start();
             //commandOutServiceThread.start();
             //commandInServiceThread.start();
-            //timeServiceThread.start();
+            timeServiceThread.start();
 
             connectionIsActive = true;
         }
@@ -152,10 +152,11 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
                 // Create execution node
                 tx.run("MATCH (ex:Execution) DETACH DELETE (ex)");
                 tx.run("CREATE (ex:Execution) " +
-                    "SET ex.executionId = $executionId, ex.commandCounter = 0 " +
-                    "RETURN ex",
+                    "SET ex.executionId = $executionId, ex.commandCounter = 0, " +
+                    "ex.DTnow = 0 RETURN ex",
                     parameters("executionId", posixTime)
                 );
+
                 for (MObjectState robot : useApi.getObjectsOfClass("BraccioRobot")) {
                     useApi.setAttribute(robot, "executionId", posixTime);
                     String twinId = useApi.getStringAttribute(robot, "twinId");

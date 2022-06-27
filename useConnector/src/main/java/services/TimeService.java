@@ -1,8 +1,12 @@
 package services;
 
+import digital.twin.DTNeo4jUtils;
 import digital.twin.DTUseFacade;
 import org.neo4j.driver.Driver;
+import org.neo4j.driver.Result;
+import org.neo4j.driver.Session;
 import plugin.DriverConfig;
+import utils.DTLogger;
 
 /**
  * @author Daniel Pérez - University of Málaga
@@ -10,8 +14,6 @@ import plugin.DriverConfig;
  * of the Digital Twin, according to the Data Lake, is greater than the USE model's timestamp.
  */
 public class TimeService extends Service {
-
-    public static final String DT_NOW = "DTnow";
 
     private final DTUseFacade useApi;
 
@@ -31,12 +33,16 @@ public class TimeService extends Service {
      */
     @Override
     protected void action() {
-        // TODO
-    }
-
-    static int getDTTimestampInDataLake() {
-        // TODO
-        return 0;
+        try (Session session = driver.session()) {
+            int dlTime = session.readTransaction(DTNeo4jUtils::getDTTimestampInDataLake);
+            int useTime = useApi.getCurrentTime();
+            if (dlTime >= useTime + DriverConfig.TICK_PERIOD_MS) {
+                int ticks = (dlTime - useTime) / DriverConfig.TICK_PERIOD_MS;
+                useApi.advanceTime(ticks);
+            }
+        } catch (Exception ex) {
+            DTLogger.error("An error ocurred:", ex);
+        }
     }
 
 }

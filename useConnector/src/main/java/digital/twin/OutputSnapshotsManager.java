@@ -46,7 +46,7 @@ public class OutputSnapshotsManager extends OutputManager {
         tx.run("MATCH (r:BraccioRobot), (o:" + NODE_LABEL + ") " +
                         "WHERE r.twinId = $twinId AND r.executionId = $executionId " +
                         "AND id(o) = $id " +
-                        "CREATE (r)-[:IS_AT_STATE]->(o)",
+                        "CREATE (r)-[:IS_IN_STATE]->(o)",
                 parameters(
                         "twinId", twinId,
                         "executionId", executionId,

@@ -1,5 +1,8 @@
 package api;
 
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+
 import java.io.Closeable;
 
 /**
@@ -9,25 +12,32 @@ import java.io.Closeable;
 @SuppressWarnings("unused")
 public class DTDataLake implements Closeable {
 
-    private static final String DT_OUTPUT_SNAPSHOT = "DTOutputSnapshot";
-    private static final String PT_OUTPUT_SNAPSHOT = "PTOutputSnapshot";
+    private final Session session;
 
-    DTDataLake() {
-        // TODO
+    DTDataLake(Driver driver) {
+        this.session = driver.session();
     }
 
     @Override
     public void close() {
-        // TODO
+        session.close();
     }
 
     /**
      * Performs a ping.
-     * @return True if the ping was answered with PONG.
+     * @return True if the ping was successful.
      */
     public boolean ping() {
-        // TODO
-        return false;
+        try {
+            session.writeTransaction(tx -> {
+                tx.run("CREATE (p:_____Ping) RETURN p");
+                tx.run("MATCH (p:_____Ping) DELETE p");
+                return null;
+            });
+            return true;
+        } catch (Exception ex) {
+            return false;
+        }
     }
 
     /**

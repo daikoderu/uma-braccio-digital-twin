@@ -130,6 +130,9 @@ public abstract class OutputManager {
                             "timestamp", timestamp,
                             "id", nodeId));
 
+            // Update timestamp
+            DTNeo4jUtils.updateDTTimestampInDataLake(tx, timestamp);
+
             return null;
         });
 

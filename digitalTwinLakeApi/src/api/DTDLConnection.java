@@ -1,6 +1,9 @@
 package api;
 
 
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.GraphDatabase;
+
 import java.io.Closeable;
 
 /**
@@ -9,16 +12,18 @@ import java.io.Closeable;
  */
 public class DTDLConnection implements Closeable {
 
+    private final Driver driver;
+
     public DTDLConnection(String host, int port) {
-        // TODO
+        driver = GraphDatabase.driver("bolt://" + host + ":" + port);
     }
 
     public DTDataLake getDataLake() {
-        return new DTDataLake();
+        return new DTDataLake(driver);
     }
 
     public void close() {
-        // TODO
+        driver.close();
     }
 
 }
