@@ -123,8 +123,13 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
      * @return true if connection is successful, false otherwise.
      */
     private boolean checkConnectionWithDatabase() {
-        try {
-            // TODO
+        try (Session session = driver.session()) {
+            DTLogger.info("Connecting to Neo4j Data Lake...");
+            session.writeTransaction(tx -> {
+                tx.run("CREATE (p:Ping) RETURN p");
+                tx.run("MATCH (p:Ping) DELETE p");
+                return null;
+            });
             DTLogger.info("Connection successful");
             return true;
         } catch (Exception ex) {
