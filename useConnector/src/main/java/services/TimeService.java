@@ -1,6 +1,7 @@
 package services;
 
 import digital.twin.DTUseFacade;
+import org.neo4j.driver.Driver;
 import plugin.DriverConfig;
 
 /**
@@ -19,8 +20,8 @@ public class TimeService extends Service {
      * @param channel The channel to send the event to
      * @param useApi USE API facade instance to interact with the currently displayed object diagram.
      */
-    public TimeService(String channel, DTUseFacade useApi) {
-        super(channel, DriverConfig.TICK_PERIOD_MS);
+    public TimeService(String channel, DTUseFacade useApi, Driver driver) {
+        super(channel, DriverConfig.TICK_PERIOD_MS, driver);
         this.useApi = useApi;
     }
 

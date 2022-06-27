@@ -1,5 +1,6 @@
 package services;
 
+import org.neo4j.driver.Driver;
 import utils.DTLogger;
 
 /**
@@ -13,16 +14,16 @@ public abstract class Service implements Runnable {
 	public static final String COMMAND_IN_CHANNEL = "CommandInChannel";
 	public static final String TIME_CHANNEL = "TimeChannel";
 
+	protected final Driver driver;
 	private final String channel;
 	private final long sleepTime;
 	private boolean running;
-	private boolean finished;
 	
-	public Service(String channel, long sleepTime) {
+	public Service(String channel, long sleepTime, Driver driver) {
 		this.channel = channel;
 		this.sleepTime = sleepTime;
+		this.driver = driver;
 		running = true;
-		finished = false;
 	}
 
 	public String getChannel() {
@@ -30,11 +31,11 @@ public abstract class Service implements Runnable {
 	}
 
 	public void run() {
+		DTLogger.info(channel, "Service running");
 		while (running) {
 			busyWait(sleepTime);
 			action();
 		}
-		finished = true;
 		DTLogger.info(channel, "Service stopped");
 	}
 

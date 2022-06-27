@@ -64,10 +64,13 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
             initialize();
 
             // Create threads
-            outService = new OutService(Service.DT_OUT_CHANNEL, new OutputSnapshotsManager(useApi));
-            commandOutService = new OutService(Service.COMMAND_OUT_CHANNEL, new CommandResultManager(useApi));
-            commandInService = new InService(Service.DT_OUT_CHANNEL, new CommandManager(useApi));
-            timeService = new TimeService(Service.COMMAND_OUT_CHANNEL, useApi);
+            outService = new OutService(Service.DT_OUT_CHANNEL,
+                    new OutputSnapshotsManager(useApi), driver);
+            commandOutService = new OutService(Service.COMMAND_OUT_CHANNEL,
+                    new CommandResultManager(useApi), driver);
+            commandInService = new InService(Service.DT_OUT_CHANNEL,
+                    new CommandManager(useApi), driver);
+            timeService = new TimeService(Service.COMMAND_OUT_CHANNEL, useApi, driver);
 
             outServiceThread = new Thread(outService,
                     Service.DT_OUT_CHANNEL + " subscriber thread");
@@ -77,7 +80,7 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
                     Service.COMMAND_IN_CHANNEL + " subscriber thread");
             timeServiceThread = new Thread(timeService,
                     Service.TIME_CHANNEL + " subscriber thread");
-            //outServiceThread.start();
+            outServiceThread.start();
             //commandOutServiceThread.start();
             //commandInServiceThread.start();
             //timeServiceThread.start();

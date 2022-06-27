@@ -1,9 +1,10 @@
 package digital.twin;
 
+import org.neo4j.driver.Transaction;
 import org.tzi.use.uml.sys.MObjectState;
 import services.Service;
 
-import java.util.Map;
+import static org.neo4j.driver.Values.parameters;
 
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
@@ -11,17 +12,14 @@ import java.util.Map;
  */
 public class CommandResultManager extends OutputManager {
 
+    private static final String NODE_LABEL = "CommandResult";
+
     public CommandResultManager(DTUseFacade useApi) {
-        super(useApi, Service.COMMAND_OUT_CHANNEL, "CommandResult", "DTCommandResult");
-        attributeSpecification.set("twinId", AttributeType.STRING);
-        attributeSpecification.set("executionId", AttributeType.STRING);
-        attributeSpecification.set("commandId", AttributeType.INTEGER);
-        attributeSpecification.set("commandName", AttributeType.STRING);
-        attributeSpecification.set("commandArguments", AttributeType.STRING);
-        attributeSpecification.set("commandTimestamp", AttributeType.INTEGER);
+        super(useApi, Service.COMMAND_OUT_CHANNEL, "CommandResult", NODE_LABEL);
         attributeSpecification.set("return", AttributeType.STRING);
     }
 
+    @Override
     protected String getObjectId(MObjectState objstate) {
         useApi.updateDerivedValues();
         String twinId = useApi.getStringAttribute(objstate, "twinId");
@@ -30,16 +28,23 @@ public class CommandResultManager extends OutputManager {
         return twinId + ":" + executionId + ":" + commandId;
     }
 
-    protected double getObjectScore(MObjectState objstate) {
-        return useApi.getIntegerAttribute(objstate, "commandId");
+    @Override
+    protected void createRelationships(Transaction tx, int nodeId, MObjectState objstate) {
+        // TODO
+        /*
+        String twinId = useApi.getStringAttribute(objstate, "twinId");
+        String executionId = useApi.getStringAttribute(objstate, "executionId");
+        tx.run("MATCH (c:Command), (o:" + NODE_LABEL + ") " +
+                        "WHERE c.twinId = $twinId AND c.executionId = $executionId " +
+                        "AND c.commandId AND id(o) = $id " +
+                        "CREATE (c)-[:RETURNED]->(o)",
+                parameters(
+                        "twinId", twinId,
+                        "executionId", executionId,
+                        "id", nodeId));
+
+         */
     }
-
-    protected void addObjectQueryRegisters(
-            String objectTypeAndId, Map<String, String> values) { }
-
-    protected void addAttributeQueryRegisters(
-            String objectTypeAndId, String attributeName,
-            AttributeType type, String attributeValue) { }
 
     protected void cleanUpModel(MObjectState objstate) { }
 

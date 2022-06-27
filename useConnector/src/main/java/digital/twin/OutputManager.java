@@ -1,5 +1,6 @@
 package digital.twin;
 
+import org.neo4j.driver.*;
 import org.tzi.use.api.UseApiException;
 import org.tzi.use.uml.sys.MObjectState;
 import utils.DTLogger;
@@ -7,6 +8,8 @@ import utils.DTLogger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.neo4j.driver.Values.parameters;
 
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
@@ -16,13 +19,12 @@ public abstract class OutputManager {
 
     protected static final String IS_PROCESSED = "isProcessed";
     protected static final String WHEN_PROCESSED = "whenProcessed";
-    protected static final String TIMESTAMP = "timestamp";
 
     protected final AttributeSpecification attributeSpecification;
     protected final DTUseFacade useApi;
     private final String channel;
     private final String retrievedClass;
-    private final String objectType;
+    private final String nodeLabel;
 
     /**
      * Default constructor. Constructors from subclasses must set the type of the attributes to serialize
@@ -30,16 +32,14 @@ public abstract class OutputManager {
      * @param useApi USE API facade instance to interact with the currently displayed object diagram.
      * @param channel The channel this OutputManager is created from.
      * @param retrievedClass The class whose instances to retrieve and serialize.
-     * @param objectType A prefix to be appended to the identifiers of all serialized instances
-     *      to identify their type.
+     * @param nodeLabel Label to use for the nodes to be created.
      */
-    public OutputManager(DTUseFacade useApi, String channel, String retrievedClass, String objectType) {
+    public OutputManager(DTUseFacade useApi, String channel, String retrievedClass, String nodeLabel) {
         attributeSpecification = new AttributeSpecification();
-        attributeSpecification.set(TIMESTAMP, AttributeType.INTEGER);
         this.useApi = useApi;
         this.channel = channel;
         this.retrievedClass = retrievedClass;
-        this.objectType = objectType;
+        this.nodeLabel = nodeLabel;
     }
 
     /**
@@ -62,12 +62,12 @@ public abstract class OutputManager {
 
     /**
      * Saves all the objects in the currently displayed object diagram to the data lake.
+     * @param session A Neo4j session object.
      */
-    public void saveObjectsToDataLake() {
+    public void saveObjectsToDataLake(Session session, List<MObjectState> unprocessedObjects) {
         useApi.updateDerivedValues();
-        List<MObjectState> unprocessedObjects = getUnprocessedModelObjects();
         for (MObjectState objstate : unprocessedObjects) {
-            saveOneObject(objstate);
+            saveOneObject(session, objstate);
         }
     }
 
@@ -75,53 +75,70 @@ public abstract class OutputManager {
      * Auxiliary method to store the object in the database, extracted from the diagram.
      * @param objstate The object to store.
      */
-    private synchronized void saveOneObject(MObjectState objstate) {
-        Map<String, String> armValues = new HashMap<>();
+    private synchronized void saveOneObject(Session session, MObjectState objstate) {
+        useApi.updateDerivedValues();
 
-        // Generate the object identifier
-        String objectId = getObjectId(objstate);
-        String objectTypeAndId = objectType + ":" + objectId;
+        int timestamp = useApi.getIntegerAttribute(objstate, "timestamp");
+        String objectTypeAndId = nodeLabel + ":" + getObjectId(objstate);
 
-        for (String attr : attributeSpecification.attributeNames()) {
-            AttributeType attrType = attributeSpecification.typeOf(attr);
-            int multiplicity = attributeSpecification.multiplicityOf(attr);
-            String attrValue = useApi.getAttributeAsString(objstate, attr);
-            if (attrValue != null) {
-                if (multiplicity > 1) {
-                    // A sequence of values
-                    String[] values = extractValuesFromCollection(attrValue, attrType);
-                    if (values.length == multiplicity) {
-                        for (int i = 1; i <= multiplicity; i++) {
-                            String attrI = attr + "_" + i;
-                            String attrvalueI = attrType.fromUseToRedisString(values[i - 1]);
-                            armValues.put(attrI,attrvalueI);
-                            addAttributeQueryRegisters(objectTypeAndId, attrI, attrType, attrvalueI);
+        Map<String, Object> attributes = new HashMap<>();
+
+        session.writeTransaction(tx -> {
+
+            // Collect attributes
+            for (String attr : attributeSpecification.attributeNames()) {
+                AttributeType attrType = attributeSpecification.typeOf(attr);
+                int multiplicity = attributeSpecification.multiplicityOf(attr);
+                String attrValue = useApi.getAttributeAsString(objstate, attr);
+                if (attrValue != null) {
+                    if (multiplicity > 1) {
+                        // A sequence of values
+                        Object[] values = extractValuesFromCollection(attrValue, attrType);
+                        if (values.length == multiplicity) {
+                            attributes.put(attr, values);
+                        } else {
+                            DTLogger.warn(getChannel(),
+                                    "Error saving output object " + objectTypeAndId + ": "
+                                            + "attribute " + attr + " has " + values.length
+                                            + " value(s), but we need " + multiplicity);
                         }
                     } else {
-                        DTLogger.warn(getChannel(),
-                                "Error saving output object " + objectTypeAndId + ": "
-                                + "attribute " + attr + " has " + values.length
-                                + " value(s), but we need " + multiplicity);
+                        // A single value
+                        Object result = attrType.fromUseToCypherObject(attrValue);
+                        attributes.put(attr, result);
                     }
                 } else {
-                    // A single value
-                    attrValue = attrType.fromUseToRedisString(attrValue);
-                    armValues.put(attr, attrValue);
-                    addAttributeQueryRegisters(objectTypeAndId, attr, attrType, attrValue);
+                    DTLogger.warn(getChannel(),
+                            "Error saving output object " + objectTypeAndId + ": "
+                                    + "attribute " + attr + " not found in class " + retrievedClass);
                 }
-            } else {
-                DTLogger.warn(getChannel(),
-                        "Error saving output object " + objectTypeAndId + ": "
-                                + "attribute " + attr + " not found in class " + retrievedClass);
             }
-        }
 
-        // TODO Save the object
+            // Create the node
+            Result newObject = tx.run("CREATE (o:" + nodeLabel + " $attributes) RETURN id(o)",
+                    parameters("attributes", attributes));
+            int nodeId = newObject.single().get("id(o)", 0);
 
-        // TODO Mark object as processed (IS_PROCESSED, WHEN_PROCESSED)
+            // Create relationships
+            createRelationships(tx, nodeId, objstate);
 
-        // Add registers for other queries
-        addObjectQueryRegisters(objectTypeAndId, armValues);
+            DTNeo4jUtils.ensureTimestamp(tx, timestamp);
+            tx.run("MATCH (o:" + nodeLabel + "), (t:Time) " +
+                            "WHERE id(o) = $id AND t.timestamp = $timestamp " +
+                            "CREATE (o)-[:AT_TIME]->(t)",
+                    parameters(
+                            "timestamp", timestamp,
+                            "id", nodeId));
+
+            return null;
+        });
+
+        DTLogger.info(getChannel(), "Saved output object: " + objectTypeAndId);
+
+        // Save the object
+        int time = useApi.getCurrentTime();
+        useApi.setAttribute(objstate, IS_PROCESSED, true);
+        useApi.setAttribute(objstate, WHEN_PROCESSED, time);
 
         // Clean up
         try {
@@ -133,31 +150,6 @@ public abstract class OutputManager {
     }
 
     /**
-     * Removes processed objects from the Data Lake.
-     * @param objstate The object state that has been processed.
-     */
-    protected abstract void cleanUpModel(MObjectState objstate) throws UseApiException;
-
-    /**
-     * Adds registers to the data lake each time an object is processed to make queries possible.
-     * @param objectTypeAndId The ID of the object to generate the registers for.
-     * @param values The values of the object to generate the registers for.
-     */
-    protected abstract void addObjectQueryRegisters(
-            String objectTypeAndId, Map<String, String> values);
-
-    /**
-     * Adds registers to the data lake each time an attribute is processed to make queries possible.
-     * @param objectTypeAndId The ID of the object to generate the registers for.
-     * @param attributeName The name of the attribute to generate the registers for.
-     * @param type The type of the attribute to generate the registers for.
-     * @param attributeValue The value of the attribute to generate the registers for.
-     */
-    protected abstract void addAttributeQueryRegisters(
-            String objectTypeAndId, String attributeName,
-            AttributeType type, String attributeValue);
-
-    /**
      * Generates and returns an identifier for an object to be stored in the data lake.
      * @param objstate The object state to generate the identifier from.
      * @return The identifier for the object.
@@ -165,12 +157,16 @@ public abstract class OutputManager {
     protected abstract String getObjectId(MObjectState objstate);
 
     /**
-     * Returns the score to use for an object to be stored in the data lake. Used to update
-     * the processed object set.
-     * @param objstate The object state to return the score from.
-     * @return The score for the object.
+     * Override to implement connections of each node to create to other existing nodes.
+     * @param tx A Neo4j transaction object.
      */
-    protected abstract double getObjectScore(MObjectState objstate);
+    protected abstract void createRelationships(Transaction tx, int nodeId, MObjectState objstate);
+
+    /**
+     * Removes processed objects from the Data Lake.
+     * @param objstate The object state that has been processed.
+     */
+    protected abstract void cleanUpModel(MObjectState objstate) throws UseApiException;
 
     /**
      * Converts an USE collection value to an array of values.
@@ -178,11 +174,12 @@ public abstract class OutputManager {
      * @param baseType Type of each element in the collection.
      * @return An array of strings containing each value in the collection.
      */
-    private String[] extractValuesFromCollection(String collection, AttributeType baseType) {
+    private Object[] extractValuesFromCollection(String collection, AttributeType baseType) {
         collection = collection.replaceAll("(?:Set|Bag|OrderedSet|Sequence)\\{(.*)}", "$1");
-        String[] result = collection.split(",");
+        String[] objects = collection.split(",");
+        Object[] result = new Object[objects.length];
         for (int i = 0; i < result.length; i++) {
-            result[i] = baseType.fromUseToRedisString(result[i]);
+            result[i] = baseType.fromUseToCypherObject(objects[i]);
         }
         return result;
     }

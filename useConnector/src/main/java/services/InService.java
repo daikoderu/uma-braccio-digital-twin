@@ -1,6 +1,7 @@
 package services;
 
 import digital.twin.InputManager;
+import org.neo4j.driver.Driver;
 import plugin.DriverConfig;
 
 /**
@@ -17,8 +18,8 @@ public class InService extends Service {
      * @param channel The channel to send the event to
      * @param inputManager Manager to use to check for Data Lake objects.
      */
-    public InService(String channel, InputManager inputManager) {
-        super(channel, DriverConfig.SLEEP_TIME_MS);
+    public InService(String channel, InputManager inputManager, Driver driver) {
+        super(channel, DriverConfig.SLEEP_TIME_MS, driver);
         this.input = inputManager;
     }
 
