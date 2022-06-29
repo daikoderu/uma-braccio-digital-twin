@@ -1,9 +1,12 @@
 package api;
 
 import org.neo4j.driver.Driver;
+import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
 
 import java.io.Closeable;
+
+import static org.neo4j.driver.Values.parameters;
 
 /**
  * @author Daniel Pérez - University of Málaga
@@ -45,8 +48,14 @@ public class DTDataLake implements Closeable {
      * @return The value of the Physical Twin's clock.
      */
     public int getPTTime() {
-        // TODO
-        return 0;
+        return session.readTransaction(tx -> {
+            Result result = tx.run("MATCH (ex:Execution) RETURN ex.PTnow");
+            if (result.hasNext()) {
+                return result.next().get("ex.PTnow").asInt();
+            } else {
+                return 0;
+            }
+        });
     }
 
     /**
@@ -54,8 +63,14 @@ public class DTDataLake implements Closeable {
      * @return The value of the Digital Twin's clock.
      */
     public int getDTTime() {
-        // TODO
-        return 0;
+        return session.readTransaction(tx -> {
+            Result result = tx.run("MATCH (ex:Execution) RETURN ex.DTnow");
+            if (result.hasNext()) {
+                return result.next().get("ex.DTnow").asInt();
+            } else {
+                return 0;
+            }
+        });
     }
 
     /**
@@ -66,7 +81,11 @@ public class DTDataLake implements Closeable {
         if (amount < 0) {
             throw new IllegalArgumentException("amount must be non-negative");
         }
-        // TODO
+        session.writeTransaction(tx -> {
+            Result result = tx.run("MATCH (ex:Execution) SET ex.DTnow = ex.DTnow + $amount",
+                    parameters("amount", amount));
+            return null;
+        });
     }
 
     /**
@@ -74,8 +93,14 @@ public class DTDataLake implements Closeable {
      * @return The ID of the current execution.
      */
     public String getCurrentExecutionId() {
-        // TODO
-        return null;
+        return session.readTransaction(tx -> {
+            Result result = tx.run("MATCH (ex:Execution) RETURN ex.executionId");
+            if (result.hasNext()) {
+                return result.next().get("ex.executionId").asString();
+            } else {
+                return null;
+            }
+        });
     }
 
     /**
@@ -83,8 +108,14 @@ public class DTDataLake implements Closeable {
      * @return The current value of the command counter.
      */
     public int getCommandCounter() {
-        // TODO
-        return 0;
+        return session.readTransaction(tx -> {
+            Result result = tx.run("MATCH (ex:Execution) RETURN ex.commandCounter");
+            if (result.hasNext()) {
+                return result.next().get("ex.commandCounter").asInt();
+            } else {
+                return 0;
+            }
+        });
     }
 
     /**
@@ -94,7 +125,7 @@ public class DTDataLake implements Closeable {
      * @return A DLTwin object to perform queries on the specified twin.
      */
     public DLTwin forTwin(String twinId) {
-        return new DLTwin(this, twinId);
+        return new DLTwin(this, session, twinId);
     }
 
 }

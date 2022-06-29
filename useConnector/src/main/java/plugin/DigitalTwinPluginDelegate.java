@@ -68,9 +68,9 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
                     new OutputSnapshotsManager(useApi), driver);
             commandOutService = new OutService(Service.COMMAND_OUT_CHANNEL,
                     new CommandResultManager(useApi), driver);
-            commandInService = new InService(Service.DT_OUT_CHANNEL,
+            commandInService = new InService(Service.COMMAND_IN_CHANNEL,
                     new CommandManager(useApi), driver);
-            timeService = new TimeService(Service.COMMAND_OUT_CHANNEL, useApi, driver);
+            timeService = new TimeService(Service.TIME_CHANNEL, useApi, driver);
 
             outServiceThread = new Thread(outService,
                     Service.DT_OUT_CHANNEL + " subscriber thread");
@@ -81,8 +81,8 @@ public class DigitalTwinPluginDelegate implements IPluginActionDelegate {
             timeServiceThread = new Thread(timeService,
                     Service.TIME_CHANNEL + " subscriber thread");
             outServiceThread.start();
-            //commandOutServiceThread.start();
-            //commandInServiceThread.start();
+            commandOutServiceThread.start();
+            commandInServiceThread.start();
             timeServiceThread.start();
 
             connectionIsActive = true;

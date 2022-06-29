@@ -25,6 +25,7 @@ public abstract class OutputManager {
     private final String channel;
     private final String retrievedClass;
     private final String nodeLabel;
+    private final String edgeToRobotLabel;
 
     /**
      * Default constructor. Constructors from subclasses must set the type of the attributes to serialize
@@ -34,12 +35,14 @@ public abstract class OutputManager {
      * @param retrievedClass The class whose instances to retrieve and serialize.
      * @param nodeLabel Label to use for the nodes to be created.
      */
-    public OutputManager(DTUseFacade useApi, String channel, String retrievedClass, String nodeLabel) {
+    public OutputManager(DTUseFacade useApi, String channel, String retrievedClass, String nodeLabel,
+                         String edgeToRobotLabel) {
         attributeSpecification = new AttributeSpecification();
         this.useApi = useApi;
         this.channel = channel;
         this.retrievedClass = retrievedClass;
         this.nodeLabel = nodeLabel;
+        this.edgeToRobotLabel = edgeToRobotLabel;
     }
 
     /**
@@ -120,15 +123,28 @@ public abstract class OutputManager {
             int nodeId = newObject.single().get("id(o)", 0);
 
             // Create relationships
-            createRelationships(tx, nodeId, objstate);
+            String twinId = useApi.getStringAttribute(objstate, "twinId");
+            String executionId = useApi.getStringAttribute(objstate, "executionId");
+
+            tx.run("MATCH (r:BraccioRobot), (o:" + nodeLabel + ") " +
+                            "WHERE r.twinId = $twinId AND r.executionId = $executionId " +
+                            "AND NOT r.isPhysical AND id(o) = $id " +
+                            "CREATE (r)-[:" + edgeToRobotLabel + "]->(o)",
+                    parameters(
+                            "twinId", twinId,
+                            "executionId", executionId,
+                            "id", nodeId));
 
             DTNeo4jUtils.ensureTimestamp(tx, timestamp);
+
             tx.run("MATCH (o:" + nodeLabel + "), (t:Time) " +
-                            "WHERE id(o) = $id AND t.timestamp = $timestamp " +
-                            "CREATE (o)-[:AT_TIME]->(t)",
+                    "WHERE id(o) = $id AND t.timestamp = $timestamp " +
+                    "CREATE (o)-[:AT_TIME]->(t)",
                     parameters(
                             "timestamp", timestamp,
                             "id", nodeId));
+
+            createExtraRelationships(tx, nodeId, objstate);
 
             // Update timestamp
             DTNeo4jUtils.updateDTTimestampInDataLake(tx, timestamp);
@@ -163,7 +179,7 @@ public abstract class OutputManager {
      * Override to implement connections of each node to create to other existing nodes.
      * @param tx A Neo4j transaction object.
      */
-    protected abstract void createRelationships(Transaction tx, int nodeId, MObjectState objstate);
+    protected abstract void createExtraRelationships(Transaction tx, int nodeId, MObjectState objstate);
 
     /**
      * Removes processed objects from the Data Lake.

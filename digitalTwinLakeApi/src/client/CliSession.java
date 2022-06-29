@@ -13,7 +13,7 @@ public class CliSession {
 
     public static final int EXIT_SUCCESS = 0;
     public static final int EXIT_FAILURE = 1;
-    public static final int DEFAULT_PORT = 7474;
+    public static final int DEFAULT_PORT = 7687;
 
     private final CliContext ctx;
     private final Map<String, BiConsumer<String[], CliContext>> commandTypes;

@@ -2,7 +2,13 @@ package services;
 
 import digital.twin.InputManager;
 import org.neo4j.driver.Driver;
+import org.neo4j.driver.Record;
+import org.neo4j.driver.Result;
+import org.neo4j.driver.Session;
 import plugin.DriverConfig;
+import utils.DTLogger;
+
+import java.util.List;
 
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
@@ -27,7 +33,15 @@ public class InService extends Service {
      * Checks periodically if there are new input objects in the Data Lake.
      */
     public void action() {
-        // TODO
+        try (Session session = driver.session()) {
+            List<Record> dlObjects = input.getUnprocessedDLObjects(session);
+            if (!dlObjects.isEmpty()) {
+                DTLogger.info(getChannel(), "New Information");
+                input.saveObjectsToUseModel(session, dlObjects);
+            }
+        } catch (Exception ex) {
+            DTLogger.error("An error ocurred: ", ex);
+        }
     }
 
 }

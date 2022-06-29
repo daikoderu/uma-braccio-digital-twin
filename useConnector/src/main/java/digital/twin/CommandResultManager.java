@@ -15,7 +15,7 @@ public class CommandResultManager extends OutputManager {
     private static final String NODE_LABEL = "CommandResult";
 
     public CommandResultManager(DTUseFacade useApi) {
-        super(useApi, Service.COMMAND_OUT_CHANNEL, "CommandResult", NODE_LABEL);
+        super(useApi, Service.COMMAND_OUT_CHANNEL, "CommandResult", NODE_LABEL, "RETURNED");
         attributeSpecification.set("return", AttributeType.STRING);
     }
 
@@ -29,21 +29,19 @@ public class CommandResultManager extends OutputManager {
     }
 
     @Override
-    protected void createRelationships(Transaction tx, int nodeId, MObjectState objstate) {
-        // TODO
-        /*
+    protected void createExtraRelationships(Transaction tx, int nodeId, MObjectState objstate) {
         String twinId = useApi.getStringAttribute(objstate, "twinId");
         String executionId = useApi.getStringAttribute(objstate, "executionId");
-        tx.run("MATCH (c:Command), (o:" + NODE_LABEL + ") " +
-                        "WHERE c.twinId = $twinId AND c.executionId = $executionId " +
-                        "AND c.commandId AND id(o) = $id " +
-                        "CREATE (c)-[:RETURNED]->(o)",
+        int commandId = useApi.getIntegerAttribute(objstate, "commandId");
+        tx.run("MATCH (c:Command)<-[:RECEIVED]-(r:BraccioRobot)-[:RETURNED]->(cr:CommandResult) " +
+                        "WHERE r.twinId = $twinId AND r.executionId = $executionId " +
+                        "AND c.commandId = $commandId AND id(cr) = $nodeId " +
+                        "CREATE (cr)-[:FOR]->(c)",
                 parameters(
                         "twinId", twinId,
                         "executionId", executionId,
-                        "id", nodeId));
-
-         */
+                        "commandId", commandId,
+                        "nodeId", nodeId));
     }
 
     protected void cleanUpModel(MObjectState objstate) { }

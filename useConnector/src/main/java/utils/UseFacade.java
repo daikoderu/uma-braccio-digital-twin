@@ -198,8 +198,12 @@ public class UseFacade {
     private Value objectToUseValue(Object object) {
         if (object instanceof Integer) {
             return IntegerValue.valueOf((int) object);
+        } else if (object instanceof Long) {
+            return IntegerValue.valueOf(Math.toIntExact((long) object));
         } else if (object instanceof Double) {
             return new RealValue((double) object);
+        } else if (object instanceof Float) {
+            return new RealValue((float) object);
         } else if (object instanceof String) {
             return new StringValue((String) object);
         } else if (object instanceof Boolean) {
@@ -226,8 +230,6 @@ public class UseFacade {
             } else {
                 throw new RuntimeException("Cannot convert this Java object to a USE value");
             }
-        } else if (object == null) {
-            return UndefinedValue.instance;
         } else {
             throw new RuntimeException("Cannot convert this Java object to a USE value");
         }

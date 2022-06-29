@@ -1,6 +1,12 @@
 package api;
 
+import org.neo4j.driver.Result;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.Transaction;
+
 import java.util.*;
+
+import static org.neo4j.driver.Values.parameters;
 
 @SuppressWarnings("unused")
 public class DLTwin {
@@ -8,14 +14,16 @@ public class DLTwin {
     private final String twinId;
     private final String executionId;
     private final DTDataLake dataLake;
+    private final Session session;
 
-    private DLTwin(DTDataLake dataLake, String twinId, String executionId) {
+    private DLTwin(DTDataLake dataLake, Session session, String twinId, String executionId) {
         this.twinId = twinId;
         this.executionId = executionId;
         this.dataLake = dataLake;
+        this.session = session;
     }
-    DLTwin(DTDataLake dataLake, String twinId) {
-        this(dataLake, twinId, dataLake.getCurrentExecutionId());
+    DLTwin(DTDataLake dataLake, Session session, String twinId) {
+        this(dataLake, session, twinId, dataLake.getCurrentExecutionId());
     }
 
     /**
@@ -24,7 +32,7 @@ public class DLTwin {
      * @return The resulting DLTwin object.
      */
     public DLTwin at(String executionId) {
-        return new DLTwin(dataLake, twinId, executionId);
+        return new DLTwin(dataLake, session, twinId, executionId);
     }
 
     // Commands
@@ -38,8 +46,26 @@ public class DLTwin {
      * @return The ID of the new command.
      */
     public int putCommand(TwinTarget target, String command, String... args) {
-        // TODO
-        return 0;
+        incrCommandCounter();
+        int id = dataLake.getCommandCounter();
+        StringJoiner argjoiner = new StringJoiner(" ");
+        for (String arg : args) {
+            argjoiner.add(arg);
+        }
+        session.writeTransaction(tx -> {
+            if (target.isPhysical) {
+                putCommandOnce(tx, "MATCH (r:BraccioRobot) WHERE r.twinId = $twinId " +
+                        "AND r.executionId = $executionId AND r.isPhysical", command,
+                        argjoiner.toString(), id);
+            }
+            if (target.isDigital) {
+                putCommandOnce(tx, "MATCH (r:BraccioRobot) WHERE r.twinId = $twinId " +
+                        "AND r.executionId = $executionId AND NOT r.isPhysical", command,
+                        argjoiner.toString(), id);
+            }
+            return null;
+        });
+        return id;
     }
 
     public Command getCommand(TwinTarget target, int commandId) {
@@ -54,7 +80,24 @@ public class DLTwin {
     }
 
     private void incrCommandCounter() {
-        // TODO
+        session.writeTransaction(tx -> {
+            Result result = tx.run("MATCH (ex:Execution) SET ex.commandCounter = ex.commandCounter + 1");
+            return null;
+        });
+    }
+
+    private void putCommandOnce(Transaction tx, String match, String command, String args, int id) {
+        tx.run(match +
+                " CREATE (r)-[:RECEIVED]->(c:Command) " +
+                "SET c.name = $name, c.arguments = $arguments, c.commandId = $commandId, " +
+                "c.isProcessed = false",
+                parameters(
+                        "twinId", twinId,
+                        "executionId", executionId,
+                        "commandId", id,
+                        "name", command,
+                        "arguments", args
+        ));
     }
 
     // Snapshots

@@ -1,12 +1,16 @@
 package digital.twin;
 
+import org.neo4j.driver.Record;
+import org.neo4j.driver.Result;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.types.Node;
 import org.tzi.use.uml.sys.MObjectState;
 import utils.DTLogger;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import static org.neo4j.driver.Values.parameters;
 
 /**
  * @author Paula Muñoz, Daniel Pérez - University of Málaga
@@ -15,26 +19,27 @@ import java.util.Set;
 public abstract class InputManager {
 
     protected static final String TIMESTAMP = "timestamp";
-    protected static final String WHEN_PROCESSED = "whenProcessed";
 
     private static int instanceCounter = 0;
 
     protected final AttributeSpecification attributeSpecification;
     protected final DTUseFacade useApi;
     private final String channel;
-    private final String objectType;
+    private final String nodeLabel;
+    private final String edgeToRobotLabel;
 
     /**
      * Default constructor.
      * @param useApi USE API facade instance to interact with the currently displayed object diagram.
      * @param channel The channel this InputManager is created from.
-     * @param objectType The type of the Data Lake objects to deserialize.
+     * @param nodeLabel The type of the Data Lake objects to deserialize.
      */
-    public InputManager(DTUseFacade useApi, String channel, String objectType) {
+    public InputManager(DTUseFacade useApi, String channel, String nodeLabel, String edgeToRobotLabel) {
         attributeSpecification = new AttributeSpecification();
         this.useApi = useApi;
         this.channel = channel;
-        this.objectType = objectType;
+        this.nodeLabel = nodeLabel;
+        this.edgeToRobotLabel = edgeToRobotLabel;
     }
 
     /**
@@ -49,47 +54,53 @@ public abstract class InputManager {
      * Retrieves the objects of type <i>objectType</i> from the Data Lake
      * @return The list of objects available in the Data Lake.
      */
-    public Set<String> getUnprocessedDLObjects() {
-        // TODO
-        return null;
+    public List<Record> getUnprocessedDLObjects(Session session) {
+        return session.readTransaction(tx -> {
+            Result result = tx.run("MATCH (r:BraccioRobot)-[:" + edgeToRobotLabel + "]->(i:" + nodeLabel + ") " +
+                    "WHERE NOT r.isPhysical AND NOT i.isProcessed " +
+                    "RETURN r.twinId, r.executionId, id(i), i ORDER BY " + getOrdering());
+            List<Record> records = new ArrayList<>();
+            while (result.hasNext()) {
+                records.add(result.next());
+            }
+            return records;
+        });
     }
 
     /**
      * Saves all the objects in the Data Lake to the USE model.
      */
-    public void saveObjectsToUseModel() {
-        Set<String> unprocessedCommands = getUnprocessedDLObjects();
-        for (String key : unprocessedCommands) {
-            saveOneObject(key);
+    public void saveObjectsToUseModel(Session session, List<Record> records) {
+        for (Record rec : records) {
+            saveOneObject(rec, session);
         }
     }
 
     /**
-     * Returns the name of the class a Redis hash should be converted to.
-     * @param hash The Redis hash to convert.
+     * Returns the name of the class a Node should be converted to.
+     * @param rec The node to convert.
      * @return The name of the class.
      */
-    protected abstract String getTargetClass(Map<String, String> hash);
+    protected abstract String getTargetClass(Record rec);
 
     /**
      * Auxiliary method to store the object in the USE model, extracted from the Data Lake.
-     * @param key The key of the object to store.
+     * @param rec The node to store in the USE model.
      */
-    private synchronized void saveOneObject(String key) {
-        Map<String, String> hash = null; // jedis.hgetAll(key);
+    private synchronized void saveOneObject(Record rec, Session session) {
+        String key = nodeLabel + ":" + getObjectId(rec);
+        int nodeId = rec.get("id(i)").asInt();
+        int timestamp = useApi.getCurrentTime();
         try {
             MObjectState objstate = useApi.createObject(
-                    getTargetClass(hash), objectType + ++instanceCounter);
+                    getTargetClass(rec), nodeLabel + ++instanceCounter);
+            Node i = rec.get("i").asNode();
             for (String attr : attributeSpecification.attributeNames()) {
-                AttributeType type = attributeSpecification.typeOf(attr);
                 int multiplicity = attributeSpecification.multiplicityOf(attr);
                 if (multiplicity > 1) {
-                    int numberOfValues = getNumberOfValues(hash, attr);
+                    List<Object> values = i.get(attr).asList();
+                    int numberOfValues = values.size();
                     if (numberOfValues == multiplicity) {
-                        List<Object> values = new ArrayList<>();
-                        for (int i = 1; i <= multiplicity; i++) {
-                            values.add(type.fromRedisStringToObject(hash.get(attr + "_" + i)));
-                        }
                         useApi.setAttribute(objstate, attr, values);
                     } else {
                         DTLogger.warn(getChannel(),
@@ -98,13 +109,15 @@ public abstract class InputManager {
                                         + " value(s), but we need " + multiplicity);
                     }
                 } else {
-                    Object value = type.fromRedisStringToObject(hash.get(attr));
+                    Object value = i.get(attr).asObject();
                     useApi.setAttribute(objstate, attr, value);
                 }
             }
 
-            // Save timestamp
-            useApi.setAttribute(objstate, TIMESTAMP, useApi.getCurrentTime());
+            // Set twin, execution ID and timestamp
+            useApi.setAttribute(objstate, "twinId", rec.get("r.twinId").asString());
+            useApi.setAttribute(objstate, "executionId", rec.get("r.executionId").asString());
+            useApi.setAttribute(objstate, TIMESTAMP, timestamp);
 
             DTLogger.info(getChannel(), "Saved input object: " + key);
             useApi.updateDerivedValues();
@@ -112,17 +125,31 @@ public abstract class InputManager {
             DTLogger.error(getChannel(), "Could not create object: " + ex.getMessage());
         }
 
-        // TODO Move object from the "UNPROCESSED" queue to the "PROCESSED" queue.
-
-        // TODO Set whenProcessed to indicate when this instance has been saved to the USE model.
+        // Move object from the "UNPROCESSED" queue to the "PROCESSED" queue, and
+        // set whenProcessed to indicate when this instance has been saved to the USE model.
+        session.writeTransaction(tx -> {
+            DTNeo4jUtils.ensureTimestamp(tx, timestamp);
+            tx.run("MATCH (i:" + nodeLabel + "), (t:Time) " +
+                "WHERE id(i) = $id AND t.timestamp = $time " +
+                "CREATE (i)-[:AT_TIME]->(t) " +
+                "SET i.isProcessed = true",
+                parameters("id", nodeId, "time", timestamp));
+            return null;
+        });
     }
 
-    private int getNumberOfValues(Map<String, String> hash, String attribute) {
-        int result = 0;
-        while (hash.containsKey(attribute + "_" + (result + 1))) {
-            result++;
-        }
-        return result;
-    }
+    /**
+     * Generates and returns an identifier to display in the USE console.
+     * @param rec The record to generate the identifier from.
+     * @return The identifier for the object.
+     */
+    protected abstract String getObjectId(Record rec);
+
+    /**
+     * Returns the contents of the ORDER BY clause used to sort the nodes returned from
+     * getUnprocessedDLObjects.
+     * @return The ORDER BY clause, e.g. i.commandId, to return commands ordered by commandId.
+     */
+    protected abstract String getOrdering();
 
 }
