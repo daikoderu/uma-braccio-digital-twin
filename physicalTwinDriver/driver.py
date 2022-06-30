@@ -2,7 +2,8 @@ import sys
 from threading import Thread
 import time
 
-import redis
+from neo4j import GraphDatabase
+from neo4j.exceptions import Neo4jError
 import serial
 
 from ptdriver.driver_exception import DriverException
@@ -10,16 +11,17 @@ from ptdriver.output_handler import output_handler
 from ptdriver.input_handler import input_handler
 from ptdriver.braccio import Braccio
 from ptdriver.ptcontext import PTContext
+from ptdriver.transactions import get_execution_id
 
 
-def enter_redis_hostport():
+def enter_neo4j_hostport():
     host, _, port_str = input("Enter Data Lake host and port: ").partition(":")
-    port = 6379
+    port = 7687
     if port_str:
         try:
             port = int(port_str)
             if port < 0 or port > 65535:
-                port = 6379
+                port = 7687
         except ValueError:
             pass
     return host, port
@@ -32,17 +34,18 @@ def setup() -> PTContext:
         twin_id = input("Enter Twin Id: ")
 
         # Create data lake connection
-        host, port = enter_redis_hostport()
-        dl = redis.Redis(host, port)
+        host, port = enter_neo4j_hostport()
+        dl = GraphDatabase.driver(f"neo4j://{host}:{port}")
 
         # Get execution ID
-        execution_id_bytes = dl.get("executionId")
-        if not execution_id_bytes:
-            raise DriverException(
-                "Execution ID not set."
-                "Please initialize the Digital Twin first."
-            )
-        execution_id = execution_id_bytes.decode()
+        with dl.session() as session:
+            execution_id = session.read_transaction(get_execution_id)
+
+            if not execution_id:
+                raise DriverException(
+                    "Execution ID not set. "
+                    "Please initialize the Digital Twin first."
+                )
 
         # Read serial port
         serialport = input("Enter serial port: ")
@@ -51,8 +54,8 @@ def setup() -> PTContext:
         return PTContext(robot, dl, twin_id, execution_id)
     except serial.serialutil.SerialException as ex:
         raise DriverException(f"Serial port error: {ex}")
-    except redis.exceptions.ConnectionError as ex:
-        raise DriverException(f"Error when connecting to the Data Lake: {ex}")
+    except Neo4jError as ex:
+        raise DriverException(f"Data Lake error: {ex}")
 
 def main():
     context = None
@@ -71,8 +74,8 @@ def main():
         input_thread = Thread(target=input_handler, name="InputThread", args=(context,))
         output_thread = Thread(target=output_handler, name="OutputThread", args=(context,))
 
-        input_thread.start()
-        output_thread.start()
+        #input_thread.start()
+        #output_thread.start()
 
         try:
             while True:

@@ -1,20 +1,20 @@
-from redis import Redis
+from neo4j import Driver
 
+from ptdriver.transactions import set_ptnow
 from ptdriver.braccio import Braccio
 
 
 class PTContext:
 
-    PTNOW = "PTnow"
-
-    def __init__(self, robot: Braccio, datalake: Redis, twin_id: str, execution_id: str):
+    def __init__(self, robot: Braccio, datalake: Driver, twin_id: str, execution_id: str):
         self.robot = robot
         self.datalake = datalake
         self.twin_id = twin_id
         self.execution_id = execution_id
 
         self.timestamp = 0
-        self.datalake.set(self.PTNOW, 0)
+        with self.datalake.session() as session:
+            session.write_transaction(lambda tx: set_ptnow(tx, 0))
 
         self.command = None
 
@@ -22,5 +22,6 @@ class PTContext:
 
     def update_timestamp(self, new_value: int) -> int:
         self.timestamp = max(new_value, self.timestamp)
-        self.datalake.set(self.PTNOW, self.timestamp)
+        with self.datalake.session() as session:
+            session.write_transaction(lambda tx: set_ptnow(tx, self.timestamp))
         return self.timestamp
