@@ -19,7 +19,7 @@ public class OutputSnapshotsManager extends OutputManager {
      */
     public OutputSnapshotsManager(DTUseFacade useApi) {
         super(useApi, Service.DT_OUT_CHANNEL, "OutputBraccioSnapshot",
-                "OutputSnapshot", "IS_AT_STATE");
+                "OutputSnapshot", "IS_IN_STATE");
         attributeSpecification.set("currentAngles", AttributeType.REAL, NUMBER_OF_SERVOS);
         attributeSpecification.set("targetAngles", AttributeType.REAL, NUMBER_OF_SERVOS);
         attributeSpecification.set("currentSpeeds", AttributeType.REAL, NUMBER_OF_SERVOS);

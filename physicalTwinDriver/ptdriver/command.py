@@ -1,16 +1,15 @@
-from ast import arguments
-from ptdriver.utils import decode_dict
+from neo4j import Record
 
 
 class Command:
 
-    def __init__(self, hash: dict):
-        decoded_hash = decode_dict(hash)
-        self.id = decoded_hash["commandId"]
-        self.twin_id = decoded_hash["twinId"]
-        self.execution_id = decoded_hash["executionId"]
-        self.name = decoded_hash["name"]
-        self.arguments = decoded_hash["arguments"]
+    def __init__(self, rec: Record, twin_id: str, execution_id: str):
+        i = rec.get("i")
+        self.id = i.get("commandId")
+        self.twin_id = twin_id
+        self.execution_id = execution_id
+        self.name = i.get("name")
+        self.arguments = i.get("arguments")
         self.when_processed = None
 
     def get_command_line(self) -> str:

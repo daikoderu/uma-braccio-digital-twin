@@ -78,7 +78,7 @@ def main():
         input_thread = Thread(target=input_handler, name="InputThread", args=(context,))
         output_thread = Thread(target=output_handler, name="OutputThread", args=(context,))
 
-        #input_thread.start()
+        input_thread.start()
         output_thread.start()
 
         try:

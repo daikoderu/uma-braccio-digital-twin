@@ -1,5 +1,6 @@
+from ptdriver.transactions import save_command_result
 from ptdriver.ptcontext import PTContext
-from ptdriver.transactions import save_output_snapshot
+from ptdriver.transactions import save_output_object
 
 
 def handle_output_snapshot(output: str, context: PTContext):
@@ -29,7 +30,9 @@ def handle_output_snapshot(output: str, context: PTContext):
         with context.datalake.session() as session:
             session.write_transaction(
                 lambda tx:
-                    save_output_snapshot(tx, context.twin_id, context.execution_id, hash, context.timestamp)
+                    save_output_object(tx, "OutputSnapshot", "IS_IN_STATE",
+                    context.twin_id, context.execution_id,
+                    hash, context.timestamp)
             )
 
         key = f"PTOutputSnapshot:{context.twin_id}:{context.execution_id}:{context.timestamp}"
@@ -45,16 +48,15 @@ def handle_command_result(output: str, context: PTContext):
         if command is not None:
             # We assume the command stored in context.command is the command
             # that has just been executed
-            hash = {
-                "twinId": context.twin_id,
-                "executionId": context.execution_id,
-                "timestamp": context.timestamp,
-                "commandId": command.id,
-                "commandName": command.name,
-                "commandArguments": command.arguments,
-                "commandTimestamp": command.when_processed,
-                "return": output
-            }
+
+            # Save snapshot to the Data Lake
+            with context.datalake.session() as session:
+                session.write_transaction(
+                    lambda tx:
+                        save_command_result(tx,
+                            context.twin_id, context.execution_id, command.id,
+                            output, context.timestamp)
+                )
 
             # Save command to the Data Lake
             key = f"PTCommandResult:{context.twin_id}:{context.execution_id}:{command.id}"

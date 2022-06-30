@@ -1,23 +1,8 @@
-from redis import Redis
 import time
 
+from ptdriver.transactions import next_command, process_input_object
 from ptdriver.ptcontext import PTContext
 from ptdriver.config import *
-from ptdriver.command import Command
-
-
-sleep_time_in_millis = 100
-
-
-def next_command(dl: Redis):
-    """Return the Redis hash key of the next command to process,
-    or None if there are no new commands.
-    """
-    last_key = dl.zrange("PTCommand_UNPROCESSED", start=0, end=0)
-    if last_key:
-        return last_key[0]
-    else:
-        return None
 
     
 def send_commands(context: PTContext):
@@ -25,26 +10,26 @@ def send_commands(context: PTContext):
     another command.
     """
     if context.command is None:
-        # We can receive a new command as we are not busy
-        command_key = next_command(context.datalake)
-        if command_key:
-            # New command received from the Data Lake
-            command = Command(context.datalake.hgetall(command_key))
-            if context.twin_id == command.twin_id \
-                    and context.execution_id == command.execution_id:
+        with context.datalake.session() as session:
+            # We can receive a new command as we are not busy
+            result = session.read_transaction(
+                lambda tx:
+                    next_command(tx, context.twin_id, context.execution_id)
+            )
+            if result is not None:
+                node_id, command = result
 
                 # Forward the command to the physical twin
                 context.robot.write(f"COM {command.get_command_line()}")
                 context.command = command
 
                 # Move to the processed commands list
-                context.datalake.zrem("PTCommand_UNPROCESSED", command_key)
-                context.datalake.zadd("PTCommand_PROCESSED", {command_key: command.id})
-                context.datalake.hset(command_key, key="whenProcessed", value=context.timestamp)
-                command.when_processed = context.timestamp
 
-            else:
-                pass  # This command is not for this twin or this execution
+                session.write_transaction(
+                    lambda tx:
+                        process_input_object(tx, node_id, context.timestamp)
+                )
+                command.when_processed = context.timestamp
 
 
 def input_handler(context: PTContext):
