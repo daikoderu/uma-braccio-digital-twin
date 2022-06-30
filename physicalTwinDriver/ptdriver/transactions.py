@@ -1,12 +1,51 @@
 from typing import Optional
+from xmlrpc.client import boolean
 from neo4j import Transaction
 
+
+def create_robot(tx: Transaction, twin_id: str, execution_id: str) -> None:
+    tx.run(
+        "CREATE (r:BraccioRobot) SET r.twinId = $twinId, r.executionId = $executionId, "
+        "r.isPhysical = true",
+        twinId=twin_id, executionId=execution_id
+    )
+
+def save_output_snapshot(
+    tx: Transaction,
+    twin_id: str,
+    execution_id: str, 
+    attrs: dict,
+    timestamp: int):
+
+    node_id = tx.run(
+        "CREATE (o:OutputSnapshot $attributes) RETURN id(o)",
+        attributes=attrs
+        ).single().get("id(o)", 0)
+
+    tx.run(
+        "MATCH (r:BraccioRobot), (o:OutputSnapshot) "
+        "WHERE r.twinId = $twinId AND r.executionId = $executionId "
+        "AND r.isPhysical AND id(o) = $id "
+        "CREATE (r)-[:IS_IN_STATE]->(o)",
+        twinId=twin_id,
+        executionId=execution_id,
+        id=node_id
+    )
+
+    ensure_timestamp(tx, timestamp)
+    tx.run(
+        "MATCH (o:OutputSnapshot), (t:Time) "
+        "WHERE id(o) = $id AND t.timestamp = $timestamp "
+        "CREATE (o)-[:AT_TIME]->(t)",
+        id=node_id,
+        timestamp=timestamp,
+    )
 
 def get_execution_id(tx: Transaction) -> Optional[str]:
     result = tx.run("MATCH (ex:Execution) RETURN ex.executionId")
     record = result.single()
     if record is not None:
-        return record.get("executionId")
+        return record.get("ex.executionId")
     else:
         return None
 

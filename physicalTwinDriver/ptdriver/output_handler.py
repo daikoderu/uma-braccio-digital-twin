@@ -1,4 +1,5 @@
 from ptdriver.ptcontext import PTContext
+from ptdriver.transactions import save_output_snapshot
 
 
 def handle_output_snapshot(output: str, context: PTContext):
@@ -10,30 +11,29 @@ def handle_output_snapshot(output: str, context: PTContext):
         speeds_list = speeds.split(',')
         context.update_timestamp(int(timestamp))
 
-        # Build the hash
+        # Build the attribute dictionary
         hash = {
-            "twinId": context.twin_id,
-            "executionId": context.execution_id,
-            "timestamp": timestamp,
+            "currentAngles": [],
+            "targetAngles": [],
+            "currentSpeeds": [],
+            "moving": False
         }
-        is_moving = False
         for i in range(6):
-            hash[f"currentAngles_{i + 1}"] = currentpos_list[i]
-            hash[f"targetAngles_{i + 1}"] = targetpos_list[i]
-            hash[f"currentSpeeds_{i + 1}"] = speeds_list[i]
+            hash["currentAngles"].append(int(currentpos_list[i]))
+            hash["targetAngles"].append(int(targetpos_list[i]))
+            hash["currentSpeeds"].append(float(speeds_list[i]))
             if float(speeds_list[i]) > 0:
-                is_moving = True
-        hash["moving"] = 1 if is_moving else 0
-
+                hash["moving"] = True
+        
         # Save snapshot to the Data Lake
-        key = f"PTOutputSnapshot:{context.twin_id}:{context.execution_id}:{context.timestamp}"
-        context.datalake.hset(key, mapping=hash)
-        context.datalake.zadd("PTOutputSnapshot_PROCESSED", {key: timestamp})
-        print(f"Saved output object: {key}")
+        with context.datalake.session() as session:
+            session.write_transaction(
+                lambda tx:
+                    save_output_snapshot(tx, context.twin_id, context.execution_id, hash, context.timestamp)
+            )
 
-        # Save a reference to this hash in the twin's "history"
-        history_key = f"PTOutputSnapshot:{context.twin_id}:{context.execution_id}_HISTORY"
-        context.datalake.zadd(history_key, {key: timestamp})
+        key = f"PTOutputSnapshot:{context.twin_id}:{context.execution_id}:{context.timestamp}"
+        print(f"Saved output object: {key}")
 
     except Exception as ex:
         print(f"Error saving output snapshot: {ex}")
@@ -58,8 +58,6 @@ def handle_command_result(output: str, context: PTContext):
 
             # Save command to the Data Lake
             key = f"PTCommandResult:{context.twin_id}:{context.execution_id}:{command.id}"
-            context.datalake.hset(key, mapping=hash)
-            context.datalake.zadd("PTCommandResult_PROCESSED", {key: command.id})
             print(f"Saved output object: {key}")
         else:
             print(f"Error saving command result: no command.")

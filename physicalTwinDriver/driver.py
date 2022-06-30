@@ -70,12 +70,16 @@ def main():
         return 0
 
     if context is not None:
+
+        # Create robot in the data lake
+        context.create_robot()
+
         print(f"PTDriver connected. Execution ID: {context.execution_id}")
         input_thread = Thread(target=input_handler, name="InputThread", args=(context,))
         output_thread = Thread(target=output_handler, name="OutputThread", args=(context,))
 
         #input_thread.start()
-        #output_thread.start()
+        output_thread.start()
 
         try:
             while True:

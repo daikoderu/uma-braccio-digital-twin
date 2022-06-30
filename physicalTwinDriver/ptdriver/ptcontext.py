@@ -1,6 +1,6 @@
 from neo4j import Driver
 
-from ptdriver.transactions import set_ptnow
+from ptdriver.transactions import set_ptnow, create_robot
 from ptdriver.braccio import Braccio
 
 
@@ -25,3 +25,7 @@ class PTContext:
         with self.datalake.session() as session:
             session.write_transaction(lambda tx: set_ptnow(tx, self.timestamp))
         return self.timestamp
+
+    def create_robot(self) -> None:
+        with self.datalake.session() as session:
+            session.write_transaction(lambda tx: create_robot(tx, self.twin_id, self.execution_id))
